@@ -16,6 +16,7 @@ jobs:
         with:
           node-version: 20
       - name: Download QNN SDK
+        shell: bash
         run: |
           wget -O ./qnn-sdk.zip https://bricks-maven-repo.s3.ap-northeast-1.amazonaws.com/qualcomm-ai-v2.27.0.240926.zip
           unzip ./qnn-sdk.zip
