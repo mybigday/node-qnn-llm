@@ -23,7 +23,7 @@ protected:
   // Context.load(config_json: string): Promise<Context>
   Napi::Value Load(const Napi::CallbackInfo &info);
   // context.query(prompt: string, callback: (result: string) => void): void
-  Napi::Value Query(const Napi::CallbackInfo &info);
+  void Query(const Napi::CallbackInfo &info);
 
   static void on_response(const char *response,
                           const GenieDialog_SentenceCode_t sentenceCode,

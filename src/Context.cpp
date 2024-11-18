@@ -30,11 +30,15 @@ protected:
         Napi::AsyncWorker::Env(), _context)));
   }
 
-  void OnError(const Napi::Error &e) { Reject(e.Value()); }
+  void OnError(const Napi::Error &e) {
+    Reject(e.Value());
+    delete _context;
+    _context = NULL;
+  }
 
 private:
   std::string config_json_;
-  ContextHolder _context;
+  ContextHolder *_context = new ContextHolder();
 };
 
 /* Context */
@@ -46,12 +50,15 @@ Napi::Object Context::Init(Napi::Env env, Napi::Object &exports) {
   Napi::Function func =
       DefineClass(env, "Context",
                   {
-                      StaticMethod("load", &Context::Load),
-                      InstanceMethod("query", &Context::Query),
+                      StaticMethod<&Context::Load>("load",
+                                                    static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
+                      InstanceMethod<&Context::Query>("query",
+                                                      static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
                   });
   constructor = Napi::Persistent(func);
   constructor.SuppressDestruct();
   exports.Set("Context", func);
+  env.SetInstanceData<Napi::FunctionReference>(constructor);
   return exports;
 }
 
@@ -59,7 +66,6 @@ Context::Context(const Napi::CallbackInfo &info)
     : Napi::ObjectWrap<Context>(info) {
   Napi::HandleScope scope(info.Env());
   _context = info[0].As<Napi::External<ContextHolder>>().Data();
-  assert(_context);
 }
 
 Context::~Context() {
@@ -78,11 +84,12 @@ Napi::Value Context::Load(const Napi::CallbackInfo &info) {
   return deferred.Promise();
 }
 
-Napi::Value Context::Query(const Napi::CallbackInfo &info) {
+void Context::Query(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
   Napi::HandleScope scope(env);
   if (_is_querying) {
     Napi::Error::New(env, "Context is busying").ThrowAsJavaScriptException();
+    return;
   }
   _is_querying = true;
   const char *prompt = info[0].As<Napi::String>().Utf8Value().c_str();
