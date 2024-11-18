@@ -1,0 +1,32 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Download QNN SDK
+        run: |
+          wget -O ./qnn-sdk.zip https://bricks-maven-repo.s3.ap-northeast-1.amazonaws.com/qualcomm-ai-v2.27.0.240926.zip
+          unzip ./qnn-sdk.zip
+          source ./qairt/2.27.0.240926/bin/envsetup.sh
+          echo "QNN_SDK_ROOT=$QNN_SDK_ROOT" >> $GITHUB_ENV
+      - name: Install dependencies
+        run: npm install
+      - name: Build
+        run: npm run build -a ARM64
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries
+          path: ./dist
