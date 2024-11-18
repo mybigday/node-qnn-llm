@@ -30,6 +30,7 @@ protected:
                           const void *userData);
 
 private:
+  static Napi::FunctionReference constructor;
   ContextHolder *_context = NULL;
   Napi::FunctionReference _callback;
   bool _is_querying = false;
