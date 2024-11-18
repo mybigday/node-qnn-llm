@@ -6,12 +6,14 @@
 class LoadWorker : public Napi::AsyncWorker, public Napi::Promise::Deferred {
 public:
   LoadWorker(Napi::Env env, std::string config_json)
-      : Napi::AsyncWorker(env), Napi::Promise::Deferred(env), config_json_(config_json) {}
+      : Napi::AsyncWorker(env), Napi::Promise::Deferred(env),
+        config_json_(config_json) {}
 
 protected:
   void Execute() {
     Genie_Status_t status;
-    status = GenieDialogConfig_createFromJson(config_json_.c_str(), &_context->config);
+    status = GenieDialogConfig_createFromJson(config_json_.c_str(),
+                                              &_context->config);
     if (status != GENIE_STATUS_SUCCESS) {
       SetError(Genie_Status_toString(status));
       return;
@@ -41,18 +43,20 @@ Napi::FunctionReference Context::constructor;
 
 Napi::Object Context::Init(Napi::Env env, Napi::Object &exports) {
   Napi::HandleScope scope(env);
-  Napi::Function func = DefineClass(env, "Context", {
-    StaticMethod("load", &Context::Load),
-    InstanceMethod("query", &Context::Query),
-  });
+  Napi::Function func =
+      DefineClass(env, "Context",
+                  {
+                      StaticMethod("load", &Context::Load),
+                      InstanceMethod("query", &Context::Query),
+                  });
   constructor = Napi::Persistent(func);
   constructor.SuppressDestruct();
   exports.Set("Context", func);
   return exports;
 }
 
-
-Context::Context(const Napi::CallbackInfo &info) : Napi::ObjectWrap<Context>(info) {
+Context::Context(const Napi::CallbackInfo &info)
+    : Napi::ObjectWrap<Context>(info) {
   Napi::HandleScope scope(info.Env());
   _context = info[0].As<Napi::External<ContextHolder>>().Data();
   assert(_context);
@@ -70,8 +74,7 @@ Napi::Value Context::Load(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
   Napi::HandleScope scope(env);
   Napi::Promise::Deferred deferred = Napi::Promise::Deferred::New(env);
-  new LoadWorker(env, info[0].As<Napi::String>().Utf8Value())
-      .Queue();
+  new LoadWorker(env, info[0].As<Napi::String>().Utf8Value()).Queue();
   return deferred.Promise();
 }
 
@@ -85,13 +88,17 @@ Napi::Value Context::Query(const Napi::CallbackInfo &info) {
   const char *prompt = info[0].As<Napi::String>().Utf8Value().c_str();
   Napi::Function callback = info[1].As<Napi::Function>();
   _callback = Napi::Persistent(callback);
-  Genie_Status_t status = GenieDialog_query(_context->dialog, prompt, GENIE_DIALOG_SENTENCE_COMPLETE, on_response, this);
+  Genie_Status_t status =
+      GenieDialog_query(_context->dialog, prompt,
+                        GENIE_DIALOG_SENTENCE_COMPLETE, on_response, this);
   if (status != GENIE_STATUS_SUCCESS) {
-    Napi::Error::New(env, Genie_Status_toString(status)).ThrowAsJavaScriptException();
+    Napi::Error::New(env, Genie_Status_toString(status))
+        .ThrowAsJavaScriptException();
   }
 }
 
-void Context::on_response(const char *response, const GenieDialog_SentenceCode_t sentenceCode,
+void Context::on_response(const char *response,
+                          const GenieDialog_SentenceCode_t sentenceCode,
                           const void *userData) {
   Context *context = static_cast<Context *>(userData);
   Napi::Env env = context->Env();

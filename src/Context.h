@@ -1,7 +1,7 @@
 #pragma once
 
-#include <napi.h>
 #include "GenieDialog.h"
+#include <napi.h>
 
 struct ContextHolder {
   GenieDialogConfig_Handle_t config = NULL;
@@ -25,7 +25,8 @@ protected:
   // context.query(prompt: string, callback: (result: string) => void): void
   Napi::Value Query(const Napi::CallbackInfo &info);
 
-  static void on_response(const char *response, const GenieDialog_SentenceCode_t sentenceCode,
+  static void on_response(const char *response,
+                          const GenieDialog_SentenceCode_t sentenceCode,
                           const void *userData);
 
 private:
