@@ -18,28 +18,35 @@ add_definitions(-DNAPI_VERSION=7)
 
 include_directories(
   ${CMAKE_JS_INC}
+  ${CMAKE_SOURCE_DIR}/src
   ${QNN_SDK_ROOT}/include/Genie
   ${QNN_SDK_ROOT}/include/QNN
 )
 
 file(GLOB SOURCE_FILES "src/addons.cc" "src/Context.cpp" "src/utils.cpp")
 
+set(QNN_LIBS "Genie")
+
 set(QNN_LIB_DIR ${QNN_SDK_ROOT}/lib)
-if (CMAKE_SYSTEM_NAME STREQUAL "Windows" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "AMD64")
-  set(QNN_PLAT_LIB_DIR ${QNN_LIB_DIR}/aarch64-windows-msvc)
-else()
-  message(FATAL_ERROR "Unsupported platform: ${CMAKE_SYSTEM_NAME} ${CMAKE_SYSTEM_PROCESSOR}")
-endif()
+set(QNN_PLAT_LIB_DIR ${QNN_LIB_DIR}/aarch64-windows-msvc)
+
+foreach(LIB IN LISTS QNN_LIBS)
+  add_library(${LIB} SHARED IMPORTED)
+  set_target_properties(${LIB} PROPERTIES IMPORTED_LOCATION ${QNN_PLAT_LIB_DIR}/${LIB}.dll)
+  set_target_properties(${LIB} PROPERTIES IMPORTED_IMPLIB ${QNN_PLAT_LIB_DIR}/${LIB}.lib)
+endforeach()
 
 add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES} ${CMAKE_JS_SRC})
 set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "" SUFFIX ".node")
-target_link_libraries(${PROJECT_NAME} ${CMAKE_JS_LIB} ${QNN_PLAT_LIB_DIR}/Genie.lib)
+target_link_libraries(${PROJECT_NAME} ${CMAKE_JS_LIB} Genie)
 
 if(MSVC AND CMAKE_JS_NODELIB_DEF AND CMAKE_JS_NODELIB_TARGET)
   # Generate node.lib
   execute_process(COMMAND ${CMAKE_AR} /def:${CMAKE_JS_NODELIB_DEF} /out:${CMAKE_JS_NODELIB_TARGET} ${CMAKE_STATIC_LINKER_FLAGS})
 endif()
 
-install(TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_BINARY_DIR})
-install(FILES ${QNN_PLAT_LIB_DIR}/Genie.dll DESTINATION ${CMAKE_BINARY_DIR})
-
+set(TARGET_DIR ${CMAKE_SOURCE_DIR}/dist)
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${PROJECT_NAME}> ${TARGET_DIR}/${PROJECT_NAME}.node
+  COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:Genie> ${TARGET_DIR}/Genie.dll
+)

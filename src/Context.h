@@ -21,7 +21,7 @@ public:
 
 protected:
   // Context.load(config_json: string): Promise<Context>
-  Napi::Value Load(const Napi::CallbackInfo &info);
+  static Napi::Value Load(const Napi::CallbackInfo &info);
   // context.query(prompt: string, callback: (result: string) => void): void
   void Query(const Napi::CallbackInfo &info);
 

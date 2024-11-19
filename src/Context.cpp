@@ -16,12 +16,12 @@ protected:
     status = GenieDialogConfig_createFromJson(config_json_.c_str(),
                                               &_context->config);
     if (status != GENIE_STATUS_SUCCESS) {
-      SetError(Genie_Status_toString(status));
+      SetError(Genie_Status_ToString(status));
       return;
     }
     status = GenieDialog_create(_context->config, &_context->dialog);
     if (status != GENIE_STATUS_SUCCESS) {
-      SetError(Genie_Status_toString(status));
+      SetError(Genie_Status_ToString(status));
       return;
     }
   }
@@ -99,7 +99,7 @@ void Context::Query(const Napi::CallbackInfo &info) {
       GenieDialog_query(_context->dialog, prompt,
                         GENIE_DIALOG_SENTENCE_COMPLETE, on_response, this);
   if (status != GENIE_STATUS_SUCCESS) {
-    Napi::Error::New(env, Genie_Status_toString(status))
+    Napi::Error::New(env, Genie_Status_ToString(status))
         .ThrowAsJavaScriptException();
   }
 }
@@ -107,7 +107,7 @@ void Context::Query(const Napi::CallbackInfo &info) {
 void Context::on_response(const char *response,
                           const GenieDialog_SentenceCode_t sentenceCode,
                           const void *userData) {
-  Context *context = static_cast<Context *>(userData);
+  Context *context = static_cast<Context *>(const_cast<void *>(userData));
   Napi::Env env = context->Env();
   Napi::HandleScope scope(env);
   Napi::Function callback = context->_callback.Value();
