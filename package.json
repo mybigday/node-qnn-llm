@@ -5,8 +5,7 @@
   "main": "index.js",
   "repository": "https://github.com/mybigday/node-qnn-llm",
   "author": "Hans <hans.chen@bricks.tools>",
-  "license": "MIT",
-  "private": true,
+  "license": "Proprietary",
   "devDependencies": {
     "cmake-js": "^7.3.0",
     "release-it": "^17.10.0"
