@@ -1,4 +1,5 @@
 #include "Context.h"
+#include "utils.h"
 #include <string>
 
 /* LoadWorker */
@@ -18,7 +19,7 @@ protected:
       SetError(Genie_Status_toString(status));
       return;
     }
-    status = GenieDialog_create(&_context->dialog, _context->config);
+    status = GenieDialog_create(_context->config, &_context->dialog);
     if (status != GENIE_STATUS_SUCCESS) {
       SetError(Genie_Status_toString(status));
       return;
@@ -58,7 +59,6 @@ Napi::Object Context::Init(Napi::Env env, Napi::Object &exports) {
   constructor = Napi::Persistent(func);
   constructor.SuppressDestruct();
   exports.Set("Context", func);
-  env.SetInstanceData<Napi::FunctionReference>(constructor);
   return exports;
 }
 
@@ -79,9 +79,9 @@ Context::~Context() {
 Napi::Value Context::Load(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
   Napi::HandleScope scope(env);
-  Napi::Promise::Deferred deferred = Napi::Promise::Deferred::New(env);
-  new LoadWorker(env, info[0].As<Napi::String>().Utf8Value()).Queue();
-  return deferred.Promise();
+  auto worker = new LoadWorker(env, info[0].As<Napi::String>().Utf8Value());
+  worker->Queue();
+  return worker->Promise();
 }
 
 void Context::Query(const Napi::CallbackInfo &info) {
