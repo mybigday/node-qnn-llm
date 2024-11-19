@@ -113,7 +113,8 @@ void Context::on_response(const char *response,
   Napi::Env env = context->Env();
   Napi::HandleScope scope(env);
   Napi::Function callback = context->_callback.Value();
-  callback.Call({Napi::String::New(env, response)});
+  callback.Call({Napi::String::New(env, response),
+                 Napi::Number::New(env, sentenceCode)});
   if (sentenceCode == GENIE_DIALOG_SENTENCE_COMPLETE) {
     context->_is_querying = false;
   }
