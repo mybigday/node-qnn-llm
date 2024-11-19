@@ -51,10 +51,12 @@ Napi::Object Context::Init(Napi::Env env, Napi::Object &exports) {
   Napi::Function func =
       DefineClass(env, "Context",
                   {
-                      StaticMethod<&Context::Load>("load",
-                                                    static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
-                      InstanceMethod<&Context::Query>("query",
-                                                      static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
+                      StaticMethod<&Context::Create>(
+                          "create", static_cast<napi_property_attributes>(
+                                        napi_writable | napi_configurable)),
+                      InstanceMethod<&Context::Query>(
+                          "query", static_cast<napi_property_attributes>(
+                                       napi_writable | napi_configurable)),
                   });
   constructor = Napi::Persistent(func);
   constructor.SuppressDestruct();
