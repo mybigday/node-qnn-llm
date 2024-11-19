@@ -76,7 +76,7 @@ Context::~Context() {
   }
 }
 
-Napi::Value Context::Load(const Napi::CallbackInfo &info) {
+Napi::Value Context::Create(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
   Napi::HandleScope scope(env);
   auto worker = new LoadWorker(env, info[0].As<Napi::String>().Utf8Value());

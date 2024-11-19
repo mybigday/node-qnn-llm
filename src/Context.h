@@ -20,8 +20,8 @@ public:
   ~Context();
 
 protected:
-  // Context.load(config_json: string): Promise<Context>
-  static Napi::Value Load(const Napi::CallbackInfo &info);
+  // Context.create(config_json: string): Promise<Context>
+  static Napi::Value Create(const Napi::CallbackInfo &info);
   // context.query(prompt: string, callback: (result: string) => void): void
   void Query(const Napi::CallbackInfo &info);
 
