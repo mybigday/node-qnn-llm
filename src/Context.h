@@ -20,7 +20,7 @@ public:
   ~Context();
 
 protected:
-  // Context.create(config_json: string): Promise<Context>
+  // Context.create(config_json: object): Promise<Context>
   static Napi::Value Create(const Napi::CallbackInfo &info);
   // context.query(prompt: string, callback: (result: string) => void): void
   void Query(const Napi::CallbackInfo &info);

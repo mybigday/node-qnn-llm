@@ -81,7 +81,9 @@ Context::~Context() {
 Napi::Value Context::Create(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
   Napi::HandleScope scope(env);
-  auto worker = new LoadWorker(env, info[0].As<Napi::String>().Utf8Value());
+  Napi::Object JSON = env.Global().Get("JSON").As<Napi::Object>();
+  Napi::Function stringify = JSON.Get("stringify").As<Napi::Function>();
+  auto worker = new LoadWorker(env, stringify.Call({info[0]}).As<Napi::String>());
   worker->Queue();
   return worker->Promise();
 }
