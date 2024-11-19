@@ -10,7 +10,7 @@ const getHtpConfigFilePath = () => {
   return require.resolve('./htp_backend_ext_config.json');
 };
 
-if (process.env.NODE_PLATFORM === 'win32' && process.env.NODE_ARCH === 'arm64') {
+if (process.platform === 'win32' && process.arch === 'arm64') {
   const binding = require('./dist/node-qnn-llm.node');
   module.exports = {
     SentenceCode,
