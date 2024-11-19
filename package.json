@@ -19,6 +19,7 @@
   },
   "files": [
     "index.js",
+    "htp_backend_ext_config.json",
     "dist/**"
   ],
   "binary": {
