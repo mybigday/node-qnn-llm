@@ -1,10 +1,30 @@
+const SentenceCode = {
+  Complete: 0,
+  Begin: 1,
+  Continue: 2,
+  End: 3,
+  Abort: 4,
+};
+
+const getHtpConfigFilePath = () => {
+  return require.resolve('./htp_backend_ext_config.json');
+};
 
 if (process.env.NODE_PLATFORM === 'win32' && process.env.NODE_ARCH === 'arm64') {
-  module.exports = require('./dist/node-qnn-llm.node');
+  const binding = require('./dist/node-qnn-llm.node');
+  module.exports = {
+    SentenceCode,
+    Context: binding.Context,
+    getHtpConfigFilePath,
+  };
 } else {
-  module.exports = new Proxy({}, {
-    get: () => {
-      throw new Error('Unsupported platform');
-    }
-  });
+  module.exports = {
+    SentenceCode,
+    Context: new Proxy({}, {
+      get: () => {
+        throw new Error('Unsupported platform');
+      }
+    }),
+    getHtpConfigFilePath,
+  };
 }
