@@ -20,7 +20,7 @@
   },
   "files": [
     "index.js",
-    "build/Release/**"
+    "dist/**"
   ],
   "binary": {
     "napi_versions": [
