@@ -26,5 +26,8 @@
     "napi_versions": [
       7
     ]
+  },
+  "npm": {
+    "publish": true
   }
 }
