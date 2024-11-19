@@ -8,7 +8,8 @@
   "license": "MIT",
   "private": true,
   "devDependencies": {
-    "cmake-js": "^7.3.0"
+    "cmake-js": "^7.3.0",
+    "release-it": "^17.10.0"
   },
   "dependencies": {
     "node-addon-api": "^7.1.1"
