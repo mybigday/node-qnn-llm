@@ -103,6 +103,7 @@ void Context::Query(const Napi::CallbackInfo &info) {
       GenieDialog_query(_context->dialog, prompt,
                         GENIE_DIALOG_SENTENCE_COMPLETE, on_response, this);
   if (status != GENIE_STATUS_SUCCESS) {
+    _is_querying = false;
     Napi::Error::New(env, Genie_Status_ToString(status))
         .ThrowAsJavaScriptException();
   }
