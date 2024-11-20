@@ -75,25 +75,25 @@ protected:
   }
 
   void OnOK() {
-    Resolve(Napi::Value());
+    Resolve(Napi::AsyncWorker::Env().Undefined());
   }
 
   void OnError(const Napi::Error &e) {
     Reject(e.Value());
   }
 
-  void OnResponse(const char *response,
-                 const GenieDialog_SentenceCode_t sentenceCode) {
-    _tsfn.BlockingCall(response, [sentenceCode](Napi::Env env, Napi::Function callback, const char* value) {
-      callback.Call({Napi::String::New(env, value), Napi::Number::New(env, sentenceCode)});
-    });
-  }
-
   static void on_response(const char *response,
                          const GenieDialog_SentenceCode_t sentenceCode,
                          const void *userData) {
     auto self = static_cast<QueryWorker *>(const_cast<void *>(userData));
-    self->OnResponse(response, sentenceCode);
+    if (self->_tsfn.Acquire() != napi_ok) {
+      printf("callback function is not available\n");
+      return;
+    }
+    self->_tsfn.BlockingCall(response, [sentenceCode](Napi::Env env, Napi::Function callback, const char* value) {
+      Napi::HandleScope scope(env);
+      callback.Call({Napi::String::New(env, value), Napi::Number::New(env, sentenceCode)});
+    });
   }
 
 private:
