@@ -22,12 +22,13 @@ public:
 protected:
   // Context.create(config_json: object): Promise<Context>
   static Napi::Value Create(const Napi::CallbackInfo &info);
-  // context.query(prompt: string, callback: (result: string) => void): Promise<void>
+  // context.query(prompt: string, callback: (result: string) => void):
+  // Promise<void>
   Napi::Value Query(const Napi::CallbackInfo &info);
-  // context.abort(): void
-  void Abort(const Napi::CallbackInfo &info);
   // context.release(): void
   void Release(const Napi::CallbackInfo &info);
+
+  void releaseContext();
 
 private:
   static Napi::FunctionReference constructor;

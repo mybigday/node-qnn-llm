@@ -56,12 +56,11 @@ public:
               Napi::Function callback)
       : Napi::AsyncWorker(env), Napi::Promise::Deferred(env), prompt_(prompt),
         dialog_(dialog) {
-    _tsfn = Napi::ThreadSafeFunction::New(env, callback, "QueryWorkerCallback", 0, 1);
+    _tsfn = Napi::ThreadSafeFunction::New(env, callback, "QueryWorkerCallback",
+                                          0, 1);
   }
 
-  ~QueryWorker() {
-    _tsfn.Release();
-  }
+  ~QueryWorker() { _tsfn.Release(); }
 
 protected:
   void Execute() {
@@ -74,25 +73,20 @@ protected:
     }
   }
 
-  void OnOK() {
-    Resolve(Napi::AsyncWorker::Env().Undefined());
-  }
+  void OnOK() { Resolve(Napi::AsyncWorker::Env().Undefined()); }
 
-  void OnError(const Napi::Error &e) {
-    Reject(e.Value());
-  }
+  void OnError(const Napi::Error &e) { Reject(e.Value()); }
 
   static void on_response(const char *response,
-                         const GenieDialog_SentenceCode_t sentenceCode,
-                         const void *userData) {
+                          const GenieDialog_SentenceCode_t sentenceCode,
+                          const void *userData) {
     auto self = static_cast<QueryWorker *>(const_cast<void *>(userData));
-    if (self->_tsfn.Acquire() != napi_ok) {
-      printf("callback function is not available\n");
-      return;
-    }
-    self->_tsfn.BlockingCall(response, [sentenceCode](Napi::Env env, Napi::Function callback, const char* value) {
+    self->_tsfn.BlockingCall(response, [sentenceCode](Napi::Env env,
+                                                      Napi::Function callback,
+                                                      const char *value) {
       Napi::HandleScope scope(env);
-      callback.Call({Napi::String::New(env, value), Napi::Number::New(env, sentenceCode)});
+      callback.Call({Napi::String::New(env, value),
+                     Napi::Number::New(env, sentenceCode)});
     });
   }
 
@@ -116,9 +110,6 @@ Napi::Object Context::Init(Napi::Env env, Napi::Object &exports) {
                                         napi_writable | napi_configurable)),
                       InstanceMethod<&Context::Query>(
                           "query", static_cast<napi_property_attributes>(
-                                       napi_writable | napi_configurable)),
-                      InstanceMethod<&Context::Abort>(
-                          "abort", static_cast<napi_property_attributes>(
                                        napi_writable | napi_configurable)),
                       InstanceMethod<&Context::Release>(
                           "release", static_cast<napi_property_attributes>(
@@ -149,7 +140,8 @@ Napi::Value Context::Create(const Napi::CallbackInfo &info) {
   Napi::HandleScope scope(env);
   Napi::Object JSON = env.Global().Get("JSON").As<Napi::Object>();
   Napi::Function stringify = JSON.Get("stringify").As<Napi::Function>();
-  std::string config_json = stringify.Call({info[0]}).As<Napi::String>().Utf8Value();
+  std::string config_json =
+      stringify.Call({info[0]}).As<Napi::String>().Utf8Value();
   auto worker = new LoadWorker(env, config_json);
   worker->Queue();
   return worker->Promise();
@@ -159,7 +151,8 @@ Napi::Value Context::Query(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
   Napi::HandleScope scope(env);
   if (_context == NULL || _context->dialog == NULL) {
-    Napi::Error::New(env, "Context is not initialized").ThrowAsJavaScriptException();
+    Napi::Error::New(env, "Context is not initialized")
+        .ThrowAsJavaScriptException();
     return env.Undefined();
   }
   std::string prompt = info[0].As<Napi::String>().Utf8Value();
@@ -169,15 +162,18 @@ Napi::Value Context::Query(const Napi::CallbackInfo &info) {
   return worker->Promise();
 }
 
-void Context::Abort(const Napi::CallbackInfo &info) {
+void Context::Release(const Napi::CallbackInfo &info) {
   if (_context) {
-    GenieDialog_query(_context->dialog, "", GENIE_DIALOG_SENTENCE_ABORT,
-                      NULL, NULL);
+    GenieDialog_free(_context->dialog);
+    GenieDialogConfig_free(_context->config);
+    delete _context;
+    _context = NULL;
   }
 }
 
-void Context::Release(const Napi::CallbackInfo &info) {
+void Context::releaseContext() {
   if (_context) {
+    GenieDialog_reset(_context->dialog);
     GenieDialog_free(_context->dialog);
     GenieDialogConfig_free(_context->config);
     delete _context;
