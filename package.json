@@ -28,9 +28,6 @@
       7
     ]
   },
-  "npm": {
-    "publish": false
-  },
   "publishConfig": {
     "registry": "https://registry.npmjs.org"
   }
