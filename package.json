@@ -15,7 +15,8 @@
   },
   "scripts": {
     "build": "cmake-js build",
-    "rebuild": "cmake-js rebuild"
+    "rebuild": "cmake-js rebuild",
+    "release": "release-it"
   },
   "files": [
     "index.js",
