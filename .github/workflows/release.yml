@@ -1,0 +1,33 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - v*
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: 'https://registry.npmjs.org'
+      - name: Download QNN SDK
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri https://bricks-maven-repo.s3.ap-northeast-1.amazonaws.com/qualcomm-ai-v2.27.0.240926.zip -OutFile qnn-sdk.zip
+          7z x qnn-sdk.zip
+          & ".\qairt\2.27.0.240926\bin\envsetup.ps1"
+          echo "QNN_SDK_ROOT=$env:QNN_SDK_ROOT" >> $env:GITHUB_ENV
+      - name: Install dependencies
+        run: yarn install
+      - name: Build
+        run: yarn run build -a arm64
+      - name: Publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish
