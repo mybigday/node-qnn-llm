@@ -20,9 +20,9 @@ jobs:
       - name: Download QNN SDK
         shell: pwsh
         run: |
-          Invoke-WebRequest -Uri https://bricks-maven-repo.s3.ap-northeast-1.amazonaws.com/qualcomm-ai-v2.27.0.240926.zip -OutFile qnn-sdk.zip
+          Invoke-WebRequest -Uri https://bricks-maven-repo.s3.ap-northeast-1.amazonaws.com/qualcomm-ai-v2.29.0.241129.zip -OutFile qnn-sdk.zip
           7z x qnn-sdk.zip
-          & ".\qairt\2.27.0.240926\bin\envsetup.ps1"
+          & ".\qairt\2.29.0.241129\bin\envsetup.ps1"
           echo "QNN_SDK_ROOT=$env:QNN_SDK_ROOT" >> $env:GITHUB_ENV
       - name: Install dependencies
         run: yarn install
