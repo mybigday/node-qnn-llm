@@ -1,6 +1,113 @@
 #include "Context.h"
 #include "utils.h"
 #include <string>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <queue>
+#include <functional>
+#include <stdexcept>
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <pthread.h>
+#endif
+
+class ContextWorker {
+public:
+  ContextWorker() {
+    thread = std::thread([this]() {
+      while (true) {
+        std::function<void()> task;
+        {
+          std::unique_lock<std::mutex> lock(mutex);
+          cv.wait(lock, [this]() { return !tasks.empty(); });
+          task = tasks.front();
+          tasks.pop();
+        }
+        task();
+      }
+    });
+  }
+
+  ~ContextWorker() {
+    if (is_initialized) {
+      addTask([this]() {
+        GenieDialog_reset(dialog);
+        GenieDialog_free(dialog);
+        GenieDialogConfig_free(config);
+      });
+      wait();
+    }
+#ifdef _WIN32
+      TerminateThread(thread.native_handle(), 1);
+#else
+    pthread_cancel(thread.native_handle());
+#endif
+    thread.join();
+  }
+
+  void query(std::string prompt, const GenieDialog_SentenceCode_t sentenceCode,
+             const GenieDialog_QueryCallback_t callback, const void *userData) {
+    addTask([this, prompt, sentenceCode, callback, userData]() {
+      error.clear();
+      Genie_Status_t status = GenieDialog_query(dialog, prompt.c_str(),
+                                                sentenceCode, callback,
+                                                userData);
+      if (status != GENIE_STATUS_SUCCESS) {
+        error = Genie_Status_ToString(status);
+      }
+    });
+    wait();
+    if (!error.empty()) {
+      throw std::runtime_error(error);
+    }
+  }
+
+  void load(std::string config_json) {
+    addTask([this, config_json]() {
+      Genie_Status_t status;
+      status = GenieDialogConfig_createFromJson(config_json.c_str(),
+                                                &config);
+      if (status != GENIE_STATUS_SUCCESS) {
+        error = Genie_Status_ToString(status);
+        return;
+      }
+      status = GenieDialog_create(config, &dialog);
+      if (status != GENIE_STATUS_SUCCESS) {
+        error = Genie_Status_ToString(status);
+        return;
+      }
+      is_initialized = true;
+    });
+    wait();
+    if (!is_initialized) {
+      throw std::runtime_error(error);
+    }
+  }
+
+protected:
+  void addTask(std::function<void()> task) {
+    std::unique_lock<std::mutex> lock(mutex);
+    tasks.push(task);
+    cv.notify_one();
+  }
+
+  void wait() {
+    std::unique_lock<std::mutex> lock(mutex);
+    cv.wait(lock, [this]() { return tasks.empty(); });
+  }
+
+private:
+  GenieDialog_Handle_t dialog = NULL;
+  GenieDialogConfig_Handle_t config = NULL;
+  std::thread thread;
+  std::mutex mutex;
+  std::condition_variable cv;
+  std::queue<std::function<void()>> tasks;
+  std::string error;
+  bool is_initialized = false;
+};
 
 /* LoadWorker */
 
@@ -12,50 +119,34 @@ public:
 
 protected:
   void Execute() {
-    Genie_Status_t status;
-    status = GenieDialogConfig_createFromJson(config_json_.c_str(),
-                                              &_context->config);
-    if (status != GENIE_STATUS_SUCCESS) {
-      SetError(Genie_Status_ToString(status));
-      return;
-    }
-    status = GenieDialog_create(_context->config, &_context->dialog);
-    if (status != GENIE_STATUS_SUCCESS) {
-      SetError(Genie_Status_ToString(status));
-      return;
+    try {
+      _context->load(config_json_);
+    } catch (const std::runtime_error &e) {
+      SetError(e.what());
+      delete _context;
     }
   }
 
   void OnOK() {
-    Resolve(Context::New(Napi::External<ContextHolder>::New(
+    Resolve(Context::New(Napi::External<ContextWorker>::New(
         Napi::AsyncWorker::Env(), _context)));
   }
 
-  void OnError(const Napi::Error &e) {
-    Reject(e.Value());
-    if (_context->config) {
-      GenieDialogConfig_free(_context->config);
-    }
-    if (_context->dialog) {
-      GenieDialog_free(_context->dialog);
-    }
-    delete _context;
-    _context = NULL;
-  }
+  void OnError(const Napi::Error &e) { Reject(e.Value()); }
 
 private:
   std::string config_json_;
-  ContextHolder *_context = new ContextHolder();
+  ContextWorker *_context = new ContextWorker();
 };
 
 /* QueryWorker */
 
 class QueryWorker : public Napi::AsyncWorker, public Napi::Promise::Deferred {
 public:
-  QueryWorker(Napi::Env env, std::string prompt, GenieDialog_Handle_t dialog,
+  QueryWorker(Napi::Env env, std::string prompt, ContextWorker *context,
               Napi::Function callback)
       : Napi::AsyncWorker(env), Napi::Promise::Deferred(env), prompt_(prompt),
-        dialog_(dialog) {
+        _context(context) {
     _tsfn = Napi::ThreadSafeFunction::New(env, callback, "QueryWorkerCallback",
                                           0, 1);
   }
@@ -64,12 +155,11 @@ public:
 
 protected:
   void Execute() {
-    Genie_Status_t status =
-        GenieDialog_query(dialog_, prompt_.c_str(),
-                          GENIE_DIALOG_SENTENCE_COMPLETE, on_response, this);
-    if (status != GENIE_STATUS_SUCCESS) {
-      SetError(Genie_Status_ToString(status));
-      return;
+    try {
+      _context->query(prompt_, GENIE_DIALOG_SENTENCE_COMPLETE, on_response,
+                       this);
+    } catch (const std::runtime_error &e) {
+      SetError(e.what());
     }
   }
 
@@ -92,7 +182,7 @@ protected:
 
 private:
   std::string prompt_;
-  GenieDialog_Handle_t dialog_;
+  ContextWorker *_context;
   Napi::ThreadSafeFunction _tsfn;
 };
 
@@ -124,14 +214,13 @@ Napi::Object Context::Init(Napi::Env env, Napi::Object &exports) {
 Context::Context(const Napi::CallbackInfo &info)
     : Napi::ObjectWrap<Context>(info) {
   Napi::HandleScope scope(info.Env());
-  _context = info[0].As<Napi::External<ContextHolder>>().Data();
+  _context = info[0].As<Napi::External<ContextWorker>>().Data();
 }
 
 Context::~Context() {
   if (_context) {
-    GenieDialog_free(_context->dialog);
-    GenieDialogConfig_free(_context->config);
     delete _context;
+    _context = NULL;
   }
 }
 
@@ -150,32 +239,20 @@ Napi::Value Context::Create(const Napi::CallbackInfo &info) {
 Napi::Value Context::Query(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
   Napi::HandleScope scope(env);
-  if (_context == NULL || _context->dialog == NULL) {
+  if (_context == NULL) {
     Napi::Error::New(env, "Context is not initialized")
         .ThrowAsJavaScriptException();
     return env.Undefined();
   }
   std::string prompt = info[0].As<Napi::String>().Utf8Value();
   Napi::Function callback = info[1].As<Napi::Function>();
-  auto worker = new QueryWorker(env, prompt, _context->dialog, callback);
+  auto worker = new QueryWorker(env, prompt, _context, callback);
   worker->Queue();
   return worker->Promise();
 }
 
 void Context::Release(const Napi::CallbackInfo &info) {
   if (_context) {
-    GenieDialog_free(_context->dialog);
-    GenieDialogConfig_free(_context->config);
-    delete _context;
-    _context = NULL;
-  }
-}
-
-void Context::releaseContext() {
-  if (_context) {
-    GenieDialog_reset(_context->dialog);
-    GenieDialog_free(_context->dialog);
-    GenieDialogConfig_free(_context->config);
     delete _context;
     _context = NULL;
   }
