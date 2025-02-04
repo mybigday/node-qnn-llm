@@ -189,7 +189,7 @@ protected:
                                                       Napi::Function callback,
                                                       const char *value) {
       Napi::HandleScope scope(env);
-      callback.Call({Napi::String::New(env, value),
+      callback.Call({value ? Napi::String::New(env, value) : env.Undefined(),
                      Napi::Number::New(env, sentenceCode)});
     });
   }
