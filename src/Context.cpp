@@ -4,6 +4,7 @@
 #include <thread>
 #include <mutex>
 #include <condition_variable>
+#include <atomic>
 #include <queue>
 #include <functional>
 #include <stdexcept>
@@ -17,34 +18,44 @@ class ContextWorker {
 public:
   ContextWorker() {
     thread = std::thread([this]() {
-      while (true) {
-        std::function<void()> task;
+      std::function<void()> task;
+      while (running) {
+        task = nullptr;
         {
-          std::unique_lock<std::mutex> lock(mutex);
-          cv.wait(lock, [this]() { return !tasks.empty(); });
+          std::unique_lock<std::mutex> lock(mutex_tx);
+          cv_tx.wait(lock, [this]() { return !tasks.empty() || !running; });
+          if (!running) {
+            if (is_initialized) {
+              GenieDialog_reset(dialog);
+              GenieDialog_free(dialog);
+              GenieDialogConfig_free(config);
+            }
+            break;
+          }
           task = tasks.front();
           tasks.pop();
         }
-        task();
+        if (task) {
+          task();
+        }
+        cv_rx.notify_one();
       }
     });
   }
 
   ~ContextWorker() {
-    if (is_initialized) {
-      addTask([this]() {
-        GenieDialog_reset(dialog);
-        GenieDialog_free(dialog);
-        GenieDialogConfig_free(config);
-      });
-      wait();
-    }
+    stop();
 #ifdef _WIN32
       TerminateThread(thread.native_handle(), 1);
 #else
     pthread_cancel(thread.native_handle());
 #endif
     thread.join();
+  }
+
+  void stop() {
+    running = false;
+    cv_tx.notify_one();
   }
 
   void query(std::string prompt, const GenieDialog_SentenceCode_t sentenceCode,
@@ -88,25 +99,28 @@ public:
 
 protected:
   void addTask(std::function<void()> task) {
-    std::unique_lock<std::mutex> lock(mutex);
+    std::unique_lock<std::mutex> lock(mutex_tx);
     tasks.push(task);
-    cv.notify_one();
+    cv_tx.notify_one();
   }
 
   void wait() {
-    std::unique_lock<std::mutex> lock(mutex);
-    cv.wait(lock, [this]() { return tasks.empty(); });
+    std::unique_lock<std::mutex> lock(mutex_rx);
+    cv_rx.wait(lock, [this]() { return tasks.empty(); });
   }
 
 private:
   GenieDialog_Handle_t dialog = NULL;
   GenieDialogConfig_Handle_t config = NULL;
+  std::atomic<bool> running = true;
   std::thread thread;
-  std::mutex mutex;
-  std::condition_variable cv;
+  std::mutex mutex_tx;
+  std::mutex mutex_rx;
+  std::condition_variable cv_tx;
+  std::condition_variable cv_rx;
   std::queue<std::function<void()>> tasks;
   std::string error;
-  bool is_initialized = false;
+  std::atomic<bool> is_initialized = false;
 };
 
 /* LoadWorker */
