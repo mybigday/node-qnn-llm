@@ -16,7 +16,7 @@ jobs:
         with:
           node-version: 20
       - name: Setup QNN SDK
-        uses: ./.github/workflows/_setup_qnn.yml
+        uses: mybigday/setup-qnn-sdk@main
         with:
           qnn-sdk-version: 2.31.0.250130
       - name: Install dependencies
