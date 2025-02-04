@@ -1,6 +1,6 @@
 {
   "name": "@fugood/node-qnn-llm",
-  "version": "0.1.0-alpha.10",
+  "version": "0.1.0-alpha.11",
   "description": "QNN LLM binding for Node.js",
   "main": "index.js",
   "repository": "https://github.com/mybigday/node-qnn-llm",
