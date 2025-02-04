@@ -185,12 +185,16 @@ protected:
                           const GenieDialog_SentenceCode_t sentenceCode,
                           const void *userData) {
     auto self = static_cast<QueryWorker *>(const_cast<void *>(userData));
-    self->_tsfn.BlockingCall(response, [sentenceCode](Napi::Env env,
+    char *value = response ? strdup(response) : NULL;
+    self->_tsfn.BlockingCall(value, [sentenceCode](Napi::Env env,
                                                       Napi::Function callback,
-                                                      const char *value) {
+                                                      char *value) {
       Napi::HandleScope scope(env);
       callback.Call({value ? Napi::String::New(env, value) : env.Undefined(),
                      Napi::Number::New(env, sentenceCode)});
+      if (value) {
+        free(value);
+      }
     });
   }
 
