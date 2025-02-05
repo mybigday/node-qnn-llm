@@ -109,6 +109,7 @@ void ContextHolder::query(std::string prompt,
     }
   }
   busying = true;
+  this->callback = std::move(callback);
   status =
       GenieDialog_query(dialog, query.c_str(), sentenceCode, on_response, this);
   busying = false;
