@@ -23,7 +23,16 @@ include_directories(
   ${QNN_SDK_ROOT}/include/QNN
 )
 
-file(GLOB SOURCE_FILES "src/addons.cc" "src/Context.cpp" "src/utils.cpp")
+file(GLOB SOURCE_FILES
+  "src/addons.cc"
+  "src/ContextHolder.cpp"
+  "src/Context.cpp"
+  "src/LoadWorker.cpp"
+  "src/QueryWorker.cpp"
+  "src/SaveSessionWorker.cpp"
+  "src/RestoreSessionWorker.cpp"
+  "src/ReleaseWorker.cpp"
+)
 
 set(QNN_LIBS "Genie")
 
