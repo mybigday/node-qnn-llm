@@ -13,4 +13,5 @@ private:
   std::string prompt_;
   ContextHolder *_context;
   Napi::ThreadSafeFunction _tsfn;
+  std::string profile_json_;
 };

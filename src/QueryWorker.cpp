@@ -12,7 +12,7 @@ QueryWorker::QueryWorker(Napi::Env env, std::string prompt,
 
 void QueryWorker::Execute() {
   try {
-    _context->query(
+    profile_json_ = _context->query(
         prompt_, GENIE_DIALOG_SENTENCE_COMPLETE,
         [this](const char *response,
                const GenieDialog_SentenceCode_t sentenceCode) {
@@ -33,6 +33,17 @@ void QueryWorker::Execute() {
   }
 }
 
-void QueryWorker::OnOK() { Resolve(Napi::AsyncWorker::Env().Undefined()); }
+void QueryWorker::OnOK() {
+  if (!profile_json_.empty()) {
+    Napi::Env env = Napi::AsyncWorker::Env();
+    Napi::HandleScope scope(env);
+    Napi::Object JSON = env.Global().Get("JSON").As<Napi::Object>();
+    Napi::Function parse = JSON.Get("parse").As<Napi::Function>();
+    Napi::Value result = parse.Call({Napi::String::New(env, profile_json_)});
+    Resolve(result);
+  } else {
+    Resolve(Napi::AsyncWorker::Env().Undefined());
+  }
+}
 
 void QueryWorker::OnError(const Napi::Error &e) { Reject(e.Value()); }

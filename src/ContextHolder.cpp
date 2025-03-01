@@ -87,7 +87,7 @@ void ContextHolder::release() {
   }
 }
 
-void ContextHolder::query(std::string prompt,
+std::string ContextHolder::query(std::string prompt,
                           const GenieDialog_SentenceCode_t sentenceCode,
                           const CompletionCallback &callback) {
   if (busying) {
@@ -116,6 +116,14 @@ void ContextHolder::query(std::string prompt,
   if (status != GENIE_STATUS_SUCCESS) {
     throw std::runtime_error(Genie_Status_ToString(status));
   }
+  const char* profile_json = nullptr;
+  Genie_AllocCallback_t callback([](size_t size, const char** data) {
+    *data = (char*)malloc(size);
+  });
+  GenieProfile_getJsonData(profile, callback, &profile_json);
+  std::string profile_json_str(profile_json);
+  free((char*)profile_json);
+  return profile_json_str;
 }
 
 void ContextHolder::abort() {

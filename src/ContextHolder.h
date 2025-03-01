@@ -13,7 +13,7 @@ public:
   ContextHolder(std::string config_json);
   ~ContextHolder();
   void release();
-  void query(std::string prompt, const GenieDialog_SentenceCode_t sentenceCode,
+  std::string query(std::string prompt, const GenieDialog_SentenceCode_t sentenceCode,
              const CompletionCallback &callback);
   void abort();
   void save(std::string filename);
