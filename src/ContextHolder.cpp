@@ -5,6 +5,8 @@ const char *Genie_Status_ToString(Genie_Status_t status) {
   switch (status) {
   case GENIE_STATUS_SUCCESS:
     return "GENIE_STATUS_SUCCESS";
+  case GENIE_STATUS_WARNING_ABORTED:
+    return "GENIE_STATUS_WARNING_ABORTED";
   case GENIE_STATUS_ERROR_GENERAL:
     return "GENIE_STATUS_ERROR_GENERAL";
   case GENIE_STATUS_ERROR_INVALID_ARGUMENT:
@@ -23,6 +25,16 @@ const char *Genie_Status_ToString(Genie_Status_t status) {
     return "GENIE_STATUS_ERROR_JSON_SCHEMA";
   case GENIE_STATUS_ERROR_JSON_VALUE:
     return "GENIE_STATUS_ERROR_JSON_VALUE";
+  case GENIE_STATUS_ERROR_GENERATE_FAILED:
+    return "GENIE_STATUS_ERROR_GENERATE_FAILED";
+  case GENIE_STATUS_ERROR_GET_HANDLE_FAILED:
+    return "GENIE_STATUS_ERROR_GET_HANDLE_FAILED";
+  case GENIE_STATUS_ERROR_APPLY_CONFIG_FAILED:
+    return "GENIE_STATUS_ERROR_APPLY_CONFIG_FAILED";
+  case GENIE_STATUS_ERROR_SET_PARAMS_FAILED:
+    return "GENIE_STATUS_ERROR_SET_PARAMS_FAILED";
+  case GENIE_STATUS_ERROR_BOUND_HANDLE:
+    return "GENIE_STATUS_ERROR_BOUND_HANDLE";
   default:
     return "UNKNOWN_GENIE_STATUS";
   }
@@ -117,7 +129,7 @@ std::string ContextHolder::query(std::string prompt,
   status =
       GenieDialog_query(dialog, query.c_str(), sentenceCode, on_response, this);
   busying = false;
-  if (status != GENIE_STATUS_SUCCESS) {
+  if (status != GENIE_STATUS_SUCCESS && status != GENIE_STATUS_WARNING_ABORTED) {
     throw std::runtime_error(Genie_Status_ToString(status));
   }
   const char* profile_json = nullptr;
