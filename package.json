@@ -1,5 +1,5 @@
 {
-  "name": "@fugood/node-qnn-llm",
+  "name": "node-qnn-llm",
   "version": "0.2.3",
   "description": "QNN LLM binding for Node.js",
   "main": "index.js",
