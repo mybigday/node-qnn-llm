@@ -1,6 +1,6 @@
 # node-qnn-llm
 
-QNN LLM binding for Node.js
+Qualcomm AI Direct libGenie binding for Node.js
 
 ## Usage
 
