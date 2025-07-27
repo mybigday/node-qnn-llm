@@ -4,7 +4,7 @@ cmake_policy(SET CMP0042 NEW)
 
 project(node-qnn-llm)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 if (DEFINED ENV{QNN_SDK_ROOT} AND NOT QNN_SDK_ROOT)
   set(QNN_SDK_ROOT $ENV{QNN_SDK_ROOT})
@@ -32,6 +32,8 @@ file(GLOB SOURCE_FILES
   "src/SaveSessionWorker.cpp"
   "src/RestoreSessionWorker.cpp"
   "src/ReleaseWorker.cpp"
+  "src/UnpackWorker.cpp"
+  "src/unpack.cpp"
 )
 
 set(QNN_LIBS "Genie")
