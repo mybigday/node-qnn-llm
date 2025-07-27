@@ -15,6 +15,8 @@ public:
   ~Context();
 
 protected:
+  // Context.unpack(bundle_path: string, unpack_dir: string): Promise<void>
+  static Napi::Value Unpack(const Napi::CallbackInfo &info);
   // Context.create(config_json: object): Promise<Context>
   static Napi::Value Create(const Napi::CallbackInfo &info);
   // context.set_stop_words(stop_words: string[]): void
