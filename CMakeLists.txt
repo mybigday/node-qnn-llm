@@ -47,9 +47,33 @@ foreach(LIB IN LISTS QNN_LIBS)
   set_target_properties(${LIB} PROPERTIES IMPORTED_IMPLIB ${QNN_PLAT_LIB_DIR}/${LIB}.lib)
 endforeach()
 
+include(FetchContent)
+
+# zlib
+FetchContent_Declare(
+  zlib
+  GIT_REPOSITORY https://github.com/madler/zlib.git
+  GIT_TAG        v1.3.1
+)
+FetchContent_MakeAvailable(zlib)
+
+# zstd
+FetchContent_Declare(
+  zstd
+  GIT_REPOSITORY https://github.com/facebook/zstd.git
+  GIT_TAG        v1.5.7
+)
+FetchContent_MakeAvailable(zstd)
+
 add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES} ${CMAKE_JS_SRC})
 set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "" SUFFIX ".node")
-target_link_libraries(${PROJECT_NAME} ${CMAKE_JS_LIB} Genie)
+target_link_libraries(
+  ${PROJECT_NAME}
+  ${CMAKE_JS_LIB}
+  Genie
+  ZLIB::ZLIB
+  ZSTD::libzstd_static
+)
 
 if(MSVC AND CMAKE_JS_NODELIB_DEF AND CMAKE_JS_NODELIB_TARGET)
   # Generate node.lib
