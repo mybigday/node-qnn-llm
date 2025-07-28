@@ -4,7 +4,13 @@ import sys
 import struct
 import zlib
 import argparse
-import zstandard as zstd
+import json
+
+try:
+    import zstd
+except ImportError:
+    print("Error: zstd module not found, please install it with `pip install zstd`", file=sys.stderr)
+    sys.exit(1)
 
 # --------------------------------------------------------------------
 # Container format:
@@ -24,20 +30,39 @@ MAGIC           = b'QGENIE1'         # 7-byte magic
 VERSION         = 1                  # 2-byte version
 HEADER_FMT      = '<7s H I Q Q Q'    # total size = 7+2+4 + 8+8+8 = 37 -> pad to 40 if you like
 
-def pack_model(input_dir, config_path, output_path, zstd_level=3):
+def pack_model(config_path, output_path, zstd_level=3):
+    input_dir = os.path.dirname(config_path)
+
     # 1) Read & compress config first
     raw_cfg = open(config_path, 'rb').read()
-    comp_cfg = zstd.ZstdCompressor(level=zstd_level).compress(raw_cfg)
+    comp_cfg = zstd.compress(raw_cfg, zstd_level)
     crc_cfg  = zlib.crc32(comp_cfg)
-    
+
+    config = json.loads(raw_cfg)
+
     # 2) Discover other files
-    tok_path = os.path.join(input_dir, 'tokenizer.json')
-    if not os.path.exists(tok_path):
-        sys.exit(f"Error: tokenizer.json not found in {input_dir}")
-    others = ['tokenizer.json'] + sorted(
-        fn for fn in os.listdir(input_dir)
-        if fn.endswith('.bin')
-    )
+    config_tokenizer_path = config['dialog']['tokenizer']['path']
+    # to relative path
+    if os.path.isabs(config_tokenizer_path):
+        config_tokenizer_path = os.path.relpath(config_tokenizer_path, input_dir)
+        if '..' in config_tokenizer_path:
+            sys.exit(f"Error: tokenizer path is not relative to {input_dir}")
+    if not os.path.exists(os.path.join(input_dir, config_tokenizer_path)):
+        sys.exit(f"Error: tokenizer not found in {input_dir}")
+
+    extra_entries = [config_tokenizer_path]
+
+    if config['dialog']['engine']['model']['type'] == 'binary':
+        ctx_bins = config['dialog']['engine']['model']['binary']['ctx-bins']
+        for ctx_bin in ctx_bins:
+            if not os.path.exists(os.path.join(input_dir, ctx_bin)):
+                sys.exit(f"Error: ctx-bin file \"{ctx_bin}\" not found in {input_dir}")
+        extra_entries.extend(ctx_bins)
+    else:
+        model_bin = config['dialog']['engine']['library']['model-bin']
+        if not os.path.exists(os.path.join(input_dir, model_bin)):
+            sys.exit(f"Error: model-bin file \"{model_bin}\" not found in {input_dir}")
+        extra_entries.append(model_bin)
 
     # 3) Open output and write placeholder header
     header_size = struct.calcsize(HEADER_FMT)
@@ -53,10 +78,9 @@ def pack_model(input_dir, config_path, output_path, zstd_level=3):
         # write tokenizer & model parts, record TOC entries
         toc = []
         cursor = cfg_offset + cfg_length
-        compressor = zstd.ZstdCompressor(level=zstd_level)
-        for name in others:
+        for name in extra_entries:
             raw = open(os.path.join(input_dir, name), 'rb').read()
-            comp = compressor.compress(raw)
+            comp = zstd.compress(raw, zstd_level)
             crc  = zlib.crc32(comp)
 
             out.write(comp)
@@ -104,15 +128,13 @@ def pack_model(input_dir, config_path, output_path, zstd_level=3):
 
 if __name__ == '__main__':
     p = argparse.ArgumentParser(
-        description="Bundle QNN Genie files into one compressed container"
+        description="Bundle QNN Genie files into one compressed container"
     )
-    p.add_argument('input_dir',  help="Directory with tokenizer.json & model_part_*.bin")
-    p.add_argument('--config',   required=True,
-                   help="Path to config.json to embed")
-    p.add_argument('--output',   default='model.bundle',
+    p.add_argument('config_path',    help="Where to load config.json from")
+    p.add_argument('-o', '--output', default='model.bin',
                    help="Output bundle file path")
-    p.add_argument('--level',    type=int, default=3,
-                   help="Zstd compression level (–7…22)")
+    p.add_argument('-l', '--level',  type=int, default=3,
+                   help="Zstd compression level (-7...22)")
     args = p.parse_args()
 
-    pack_model(args.input_dir, args.config, args.output, args.level)
+    pack_model(args.config_path, args.output, args.level)
