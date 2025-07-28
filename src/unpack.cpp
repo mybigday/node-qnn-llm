@@ -148,11 +148,11 @@ static T readLE(const uint8_t *ptr) {
 
 static uint32_t computeGlobalCrc(const uint8_t *data, size_t size) {
     size_t validLen = (size > sizeof(uint32_t)) ? size - sizeof(uint32_t) : 0;
-    uint32_t crc = ::crc32(0, nullptr, 0);
+    uint32_t crc = crc32(0, nullptr, 0);
     size_t offset = 0;
     while (offset < validLen) {
         size_t chunk = std::min(IO_BUFFER_SIZE, validLen - offset);
-        crc = ::crc32(crc, data + offset, static_cast<uInt>(chunk));
+        crc = crc32(crc, data + offset, static_cast<uInt>(chunk));
         offset += chunk;
     }
     return crc;
