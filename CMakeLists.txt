@@ -50,6 +50,10 @@ endforeach()
 include(FetchContent)
 
 # zlib
+set(ZLIB_BUILD_STATIC ON)
+set(ZLIB_BUILD_SHARED OFF)
+set(ZLIB_BUILD_EXAMPLES OFF)
+
 FetchContent_Declare(
   zlib
   GIT_REPOSITORY https://github.com/madler/zlib.git
@@ -58,12 +62,18 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(zlib)
 
 # zstd
+set(ZSTD_BUILD_STATIC ON)
+set(ZSTD_BUILD_SHARED OFF)
+set(ZSTD_BUILD_EXAMPLES OFF)
+set(ZSTD_BUILD_TESTS OFF)
+
 FetchContent_Declare(
   zstd
   GIT_REPOSITORY https://github.com/facebook/zstd.git
   GIT_TAG        v1.5.7
 )
 FetchContent_MakeAvailable(zstd)
+add_subdirectory(${zstd_SOURCE_DIR}/build/cmake)
 
 add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES} ${CMAKE_JS_SRC})
 set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "" SUFFIX ".node")
@@ -71,8 +81,8 @@ target_link_libraries(
   ${PROJECT_NAME}
   ${CMAKE_JS_LIB}
   Genie
-  ZLIB::ZLIB
-  ZSTD::libzstd_static
+  zlibstatic
+  libzstd_static
 )
 
 if(MSVC AND CMAKE_JS_NODELIB_DEF AND CMAKE_JS_NODELIB_TARGET)
