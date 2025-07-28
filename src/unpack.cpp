@@ -232,6 +232,11 @@ void unpackModel(const std::string &bundlePath,
     fs::create_directories(outDir);
     ThreadPool pool(std::thread::hardware_concurrency());
     for (auto &e : entries) {
+        // Skip if file exists and size matches expected raw length
+        fs::path outPath = fs::path(outDir) / e.name;
+        if (fs::exists(outPath) && fs::file_size(outPath) == e.raw_length) {
+            continue; // skip already extracted section
+        }
         pool.enqueue([=](){ decompressSection(base, e.offset, e.comp_length, fs::path(outDir)/e.name); });
     }
     pool.wait();
