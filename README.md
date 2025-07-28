@@ -7,7 +7,9 @@ Qualcomm AI Direct libGenie binding for Node.js
 ```javascript
 import { Context, SentenceCode } from 'node-qnn-llm';
 
-const context = await Context.create(/* Genie config */);
+const context = await Context.create(/* Genie config object */);
+// Or load bundled
+// const context = await Context.load({ bundle_path: 'path/to/bundle', unpack_dir: 'path/to/store/unpacked', n_thread?: Number })
 
 await context.query('Hello, world!', (result, sentenceCode) => {
   console.log(result);
@@ -25,6 +27,18 @@ await context.apply_sampler_config({
 
 await context.release();
 ```
+
+## Bundled File
+
+To easier to deploy model, we announced packed file struct.
+
+- Constant entry config path.
+- Auto resolve file path.
+- Patch config on load.
+
+You can quickly pack your model files use [pack.py](pack.py).
+
+Usage: `./pack.py path/to/config.json`
 
 ## License
 
