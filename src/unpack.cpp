@@ -152,7 +152,7 @@ static uint32_t computeGlobalCrc(const uint8_t *data, size_t size) {
     uint32_t crc = crc32(0, nullptr, 0);
     size_t offset = 0;
     while (offset < validLen) {
-        size_t chunk = std::min(IO_BUFFER_SIZE, validLen - offset);
+        size_t chunk = std::min<size_t>(IO_BUFFER_SIZE, validLen - offset);
         crc = crc32(crc, data + offset, static_cast<uInt>(chunk));
         offset += chunk;
     }
