@@ -5,6 +5,7 @@
 #include "ReleaseWorker.h"
 #include "RestoreSessionWorker.h"
 #include "SaveSessionWorker.h"
+#include "UnpackWorker.h"
 #include <stdexcept>
 #include <string>
 
@@ -15,6 +16,9 @@ Napi::Object Context::Init(Napi::Env env, Napi::Object &exports) {
   Napi::Function func = DefineClass(
       env, "Context",
       {
+          StaticMethod<&Context::Unpack>(
+              "unpack", static_cast<napi_property_attributes>(
+                           napi_writable | napi_configurable)),
           StaticMethod<&Context::Create>(
               "create", static_cast<napi_property_attributes>(
                             napi_writable | napi_configurable)),
@@ -56,6 +60,16 @@ Context::~Context() {
   if (_context) {
     delete _context;
   }
+}
+
+Napi::Value Context::Unpack(const Napi::CallbackInfo &info) {
+  Napi::Env env = info.Env();
+  Napi::HandleScope scope(env);
+  std::string bundle_path = info[0].As<Napi::String>().Utf8Value();
+  std::string unpack_dir = info[1].As<Napi::String>().Utf8Value();
+  auto worker = new UnpackWorker(env, bundle_path, unpack_dir);
+  worker->Queue();
+  return worker->Promise();
 }
 
 Napi::Value Context::Create(const Napi::CallbackInfo &info) {
