@@ -4,6 +4,7 @@
 #include <vector>
 #include <cstring>
 #include <stdexcept>
+#include <algorithm>
 #include <zstd.h>
 #include <zlib.h>
 #include <thread>
