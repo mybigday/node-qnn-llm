@@ -38,13 +38,35 @@ file(GLOB SOURCE_FILES
 
 set(QNN_LIBS "Genie")
 
+if (CMAKE_SYSTEM_NAME STREQUAL "Windows" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "ARM64" AND MSVC)
+  set(QNN_ARCH "aarch64-windows-msvc")
+  set(SHARED_PREFIX "")
+  set(SHARED_EXT ".dll")
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "X64" AND MSVC)
+  set(QNN_ARCH "x86_64-windows-msvc")
+  set(SHARED_PREFIX "")
+  set(SHARED_EXT ".dll")
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64" AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  set(QNN_ARCH "aarch64-ubuntu-gcc9.4")
+  set(SHARED_PREFIX "lib")
+  set(SHARED_EXT ".so")
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  set(QNN_ARCH "x86_64-linux-clang")
+  set(SHARED_PREFIX "lib")
+  set(SHARED_EXT ".so")
+else()
+  message(FATAL_ERROR "Unsupported system: ${CMAKE_SYSTEM_NAME} ${CMAKE_SYSTEM_PROCESSOR}")
+endif()
+
 set(QNN_LIB_DIR ${QNN_SDK_ROOT}/lib)
-set(QNN_PLAT_LIB_DIR ${QNN_LIB_DIR}/aarch64-windows-msvc)
+set(QNN_PLAT_LIB_DIR ${QNN_LIB_DIR}/${QNN_ARCH})
 
 foreach(LIB IN LISTS QNN_LIBS)
   add_library(${LIB} SHARED IMPORTED)
-  set_target_properties(${LIB} PROPERTIES IMPORTED_LOCATION ${QNN_PLAT_LIB_DIR}/${LIB}.dll)
-  set_target_properties(${LIB} PROPERTIES IMPORTED_IMPLIB ${QNN_PLAT_LIB_DIR}/${LIB}.lib)
+  set_target_properties(${LIB} PROPERTIES IMPORTED_LOCATION ${QNN_PLAT_LIB_DIR}/${SHARED_PREFIX}${LIB}${SHARED_EXT})
+  if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    set_target_properties(${LIB} PROPERTIES IMPORTED_IMPLIB ${QNN_PLAT_LIB_DIR}/${SHARED_PREFIX}${LIB}.lib)
+  endif()
 endforeach()
 
 include(FetchContent)
@@ -93,5 +115,5 @@ endif()
 set(TARGET_DIR ${CMAKE_SOURCE_DIR}/dist)
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${PROJECT_NAME}> ${TARGET_DIR}/${PROJECT_NAME}.node
-  COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:Genie> ${TARGET_DIR}/Genie.dll
+  COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:Genie> ${TARGET_DIR}/${SHARED_PREFIX}Genie${SHARED_EXT}
 )
