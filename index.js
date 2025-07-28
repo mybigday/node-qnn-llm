@@ -17,28 +17,28 @@ if (process.platform === 'win32' && process.arch === 'arm64') {
   const { Context } = require('./dist/node-qnn-llm.node');
 
   Context.load = async ({
-    bundlePath,
-    unpackDir,
-    n_threads: nThreads,
+    bundle_path,
+    unpack_dir,
+    n_threads,
   }) => {
-    if (!(await fs.exists(path.join(unpackDir, 'config.json')))) {
-      await Context.unpack(bundlePath, unpackDir);
+    if (!(await fs.exists(path.join(unpack_dir, 'config.json')))) {
+      await Context.unpack(bundle_path, unpack_dir);
     }
-    const config = JSON.parse(await fs.readFile(path.join(unpackDir, 'config.json'), 'utf8'));
+    const config = JSON.parse(await fs.readFile(path.join(unpack_dir, 'config.json'), 'utf8'));
     // Hard patch config.json
     if (config.dialog.engine.backend.type === 'QnnHtp') {
       config.dialog.engine.backend.extensions = getHtpConfigFilePath();
       config.dialog.engine.backend.QnnHtp['use-mmap'] = false;
     }
-    config.dialog.tokenizer.path = path.join(unpackDir, config.dialog.tokenizer.path);
+    config.dialog.tokenizer.path = path.join(unpack_dir, config.dialog.tokenizer.path);
     if (config.dialog.engine.model.type === 'binary') {
       const bins = config.dialog.engine.model.binary['ctx-bins'];
-      config.dialog.engine.model.binary['ctx-bins'] = bins.map(bin => path.join(unpackDir, bin));
+      config.dialog.engine.model.binary['ctx-bins'] = bins.map(bin => path.join(unpack_dir, bin));
     } else {
       const bin = config.dialog.engine.library['model-bin'];
-      config.dialog.engine.library['model-bin'] = path.join(unpackDir, bin);
+      config.dialog.engine.library['model-bin'] = path.join(unpack_dir, bin);
     }
-    if (nThreads && nThreads > 0) config.dialog.engine['n-threads'] = nThreads;
+    if (n_threads && n_threads > 0) config.dialog.engine['n-threads'] = n_threads;
     return await Context.create(config);
   };
 
