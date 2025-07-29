@@ -103,35 +103,77 @@ void alloc_json_data(size_t size, const char** data) {
   *data = (char*)malloc(size);
 }
 
+void ContextHolder::process(std::string prompt) {
+  if (busying) {
+    throw std::runtime_error("Context is busy");
+  }
+  std::string query = prompt;
+  Genie_Status_t status;
+  GenieDialog_SentenceCode_t sentenceCode = GENIE_DIALOG_SENTENCE_COMPLETE;
+  if (!full_context.empty()) {
+    sentenceCode = GENIE_DIALOG_SENTENCE_REWIND;
+  }
+  busying = true;
+  this->callback = std::move(callback);
+  status = GenieDialog_query(dialog, query.c_str(), sentenceCode, process_callback, this);
+  if (status != GENIE_STATUS_SUCCESS && status != GENIE_STATUS_WARNING_ABORTED) {
+    // retry normal query
+    if (prompt.find(full_context) == 0) {
+      query = prompt.substr(full_context.length());
+    } else {
+      status = GenieDialog_reset(dialog);
+      if (status != GENIE_STATUS_SUCCESS) {
+        throw std::runtime_error(Genie_Status_ToString(status));
+      }
+    }
+    status = GenieDialog_query(dialog, query.c_str(), sentenceCode, process_callback, this);
+  }
+  busying = false;
+  if (status != GENIE_STATUS_SUCCESS && status != GENIE_STATUS_WARNING_ABORTED) {
+    throw std::runtime_error(Genie_Status_ToString(status));
+  }
+  full_context = prompt;
+}
+
+void ContextHolder::process_callback(const char *response,
+                               const GenieDialog_SentenceCode_t sentenceCode,
+                               const void *userData) {
+  GenieDialog_signal(dialog, GENIE_DIALOG_ACTION_ABORT);
+  busying = false;
+  return;
+}
+
 std::string ContextHolder::query(std::string prompt,
-                          const GenieDialog_SentenceCode_t sentenceCode,
                           const CompletionCallback &callback) {
   if (busying) {
     throw std::runtime_error("Context is busy");
   }
   std::string query = prompt;
   Genie_Status_t status;
-  if (full_context.empty()) {
-    full_context = prompt;
-  } else {
+  GenieDialog_SentenceCode_t sentenceCode = GENIE_DIALOG_SENTENCE_COMPLETE;
+  if (!full_context.empty()) {
+    sentenceCode = GENIE_DIALOG_SENTENCE_REWIND;
+  }
+  busying = true;
+  this->callback = std::move(callback);
+  status = GenieDialog_query(dialog, query.c_str(), sentenceCode, on_response, this);
+  if (status != GENIE_STATUS_SUCCESS) {
+    // retry normal query
     if (prompt.find(full_context) == 0) {
       query = prompt.substr(full_context.length());
     } else {
-      full_context = prompt;
       status = GenieDialog_reset(dialog);
       if (status != GENIE_STATUS_SUCCESS) {
         throw std::runtime_error(Genie_Status_ToString(status));
       }
     }
+    status = GenieDialog_query(dialog, query.c_str(), sentenceCode, on_response, this);
   }
-  busying = true;
-  this->callback = std::move(callback);
-  status =
-      GenieDialog_query(dialog, query.c_str(), sentenceCode, on_response, this);
   busying = false;
   if (status != GENIE_STATUS_SUCCESS && status != GENIE_STATUS_WARNING_ABORTED) {
     throw std::runtime_error(Genie_Status_ToString(status));
   }
+  full_context = prompt;
   const char* profile_json = nullptr;
   GenieProfile_getJsonData(profile, alloc_json_data, &profile_json);
   std::string profile_json_str(profile_json);

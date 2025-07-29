@@ -13,8 +13,8 @@ public:
   ContextHolder(std::string config_json);
   ~ContextHolder();
   void release();
-  std::string query(std::string prompt, const GenieDialog_SentenceCode_t sentenceCode,
-             const CompletionCallback &callback);
+  void process(std::string prompt);
+  std::string query(std::string prompt, const CompletionCallback &callback);
   void abort();
   void save(std::string filename);
   void restore(std::string filename);
@@ -22,6 +22,9 @@ public:
   void apply_sampler_config(std::string config_json);
 
 protected:
+  static void process_callback(const char *response,
+                               const GenieDialog_SentenceCode_t sentenceCode,
+                               const void *userData);
   static void on_response(const char *response,
                           const GenieDialog_SentenceCode_t sentenceCode,
                           const void *userData);

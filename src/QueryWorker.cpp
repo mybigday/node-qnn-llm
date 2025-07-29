@@ -13,7 +13,7 @@ QueryWorker::QueryWorker(Napi::Env env, std::string prompt,
 void QueryWorker::Execute() {
   try {
     profile_json_ = _context->query(
-        prompt_, GENIE_DIALOG_SENTENCE_COMPLETE,
+        prompt_,
         [this](const char *response,
                const GenieDialog_SentenceCode_t sentenceCode) {
           char *value = response ? strdup(response) : NULL;

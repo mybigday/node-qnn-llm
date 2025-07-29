@@ -29,6 +29,7 @@ file(GLOB SOURCE_FILES
   "src/Context.cpp"
   "src/LoadWorker.cpp"
   "src/QueryWorker.cpp"
+  "src/ProcessWorker.cpp"
   "src/SaveSessionWorker.cpp"
   "src/RestoreSessionWorker.cpp"
   "src/ReleaseWorker.cpp"
