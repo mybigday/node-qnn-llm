@@ -138,9 +138,8 @@ void ContextHolder::process(std::string prompt) {
 void ContextHolder::process_callback(const char *response,
                                const GenieDialog_SentenceCode_t sentenceCode,
                                const void *userData) {
-  GenieDialog_signal(dialog, GENIE_DIALOG_ACTION_ABORT);
-  busying = false;
-  return;
+  ContextHolder *self = (ContextHolder *)userData;
+  GenieDialog_signal(self->dialog, GENIE_DIALOG_ACTION_ABORT);
 }
 
 std::string ContextHolder::query(std::string prompt,
