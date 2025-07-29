@@ -9,7 +9,7 @@
   "devDependencies": {
     "cmake-js": "^7.3.0",
     "node-addon-api": "^8.0.0",
-    "release-it": "^17.10.0"
+    "release-it": "^19.0.4"
   },
   "scripts": {
     "build": "cmake-js build",
