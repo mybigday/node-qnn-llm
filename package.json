@@ -16,6 +16,12 @@
     "rebuild": "cmake-js rebuild",
     "release": "release-it"
   },
+  "keywords": [
+    "qualcomm",
+    "npu",
+    "llm",
+    "llama"
+  ],
   "files": [
     "index.js",
     "htp_backend_ext_config.json",
