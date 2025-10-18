@@ -16,16 +16,18 @@ const getHtpConfigFilePath = () => {
 let Context;
 let Embedding;
 try {
-  ({ Context, Embedding } = require('./dist/node-qnn-llm.node'));
+  const { platform, arch } = process;
+  const pkgName = `node-qnn-llm-${platform}-${arch}`;
+  ({ Context, Embedding } = require(arch === 'arm64' ? pkgName : `./packages/${pkgName}`));
 } catch {
   Context = new Proxy({}, {
     get: () => {
-      throw new Error('Unsupported platform');
+      throw new Error('Unsupported platform or failed to load native module');
     }
   });
   Embedding = new Proxy({}, {
     get: () => {
-      throw new Error('Unsupported platform');
+      throw new Error('Unsupported platform or failed to load native module');
     }
   });
 }
@@ -33,7 +35,9 @@ try {
 const preProcessEngine = (engine, dir, n_threads) => {
   if (engine.backend.type === 'QnnHtp') {
     engine.backend.extensions = getHtpConfigFilePath();
-    engine.backend.QnnHtp['use-mmap'] = process.platform !== 'win32';
+    if (process.platform === 'win32') {
+      engine.backend.QnnHtp['use-mmap'] = false;
+    }
   }
   if (engine.model.type === 'binary') {
     const bins = engine.model.binary['ctx-bins'];

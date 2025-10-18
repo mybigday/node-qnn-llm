@@ -3,3 +3,8 @@ build/
 dist/
 qairt/
 .vscode/
+__pycache__/
+*.node
+*.so
+*.dll
+package-lock.json
