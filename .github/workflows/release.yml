@@ -38,7 +38,7 @@ jobs:
       - name: Install dependencies
         run: npm run bootstrap
       - name: Build native module
-        run: npm run build -a ${{ matrix.arch }}
+        run: npm run build -- -a ${{ matrix.arch }}
       - name: Publish
         if: ${{ inputs.publish || startsWith(github.ref, 'refs/tags/v') }}
         env:

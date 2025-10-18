@@ -25,7 +25,7 @@ jobs:
       - name: Install dependencies
         run: npm run bootstrap
       - name: Build
-        run: npm run build -a arm64
+        run: npm run build -- -a arm64
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
