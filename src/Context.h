@@ -30,7 +30,7 @@ protected:
   // context.abort(): void
   void Abort(const Napi::CallbackInfo &info);
   // context.query(prompt: string, callback: (result: string) => void):
-  // Promise<void>
+  // Promise<string>
   Napi::Value Query(const Napi::CallbackInfo &info);
   // context.release(): Promise<void>
   Napi::Value Release(const Napi::CallbackInfo &info);

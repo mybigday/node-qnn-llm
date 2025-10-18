@@ -4,6 +4,9 @@
 #include <atomic>
 #include <functional>
 #include <string>
+#include <unordered_map>
+
+typedef std::unordered_map<std::string, float> LoraStrengthMap;
 
 class ContextHolder {
   using CompletionCallback =
@@ -20,6 +23,9 @@ public:
   void restore(std::string filename);
   void set_stop_words(std::string stop_words_json);
   void apply_sampler_config(std::string config_json);
+  void apply_lora(const std::string &engine, const std::string &lora_adapter_name);
+  void set_lora_strength(const std::string &engine, const LoraStrengthMap &lora_strength_map);
+  void reset();
 
 protected:
   static void process_callback(const char *response,

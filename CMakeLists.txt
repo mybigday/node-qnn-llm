@@ -25,6 +25,10 @@ include_directories(
 
 file(GLOB SOURCE_FILES
   "src/addons.cc"
+  "src/utils.c"
+  "src/EmbeddingsHolder.cpp"
+  "src/Embedding.cpp"
+  "src/EmbeddingQueryWorker.cpp"
   "src/ContextHolder.cpp"
   "src/Context.cpp"
   "src/LoadWorker.cpp"

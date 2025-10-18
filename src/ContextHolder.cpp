@@ -1,44 +1,6 @@
 #include "ContextHolder.h"
+#include "utils.h"
 #include <stdexcept>
-
-const char *Genie_Status_ToString(Genie_Status_t status) {
-  switch (status) {
-  case GENIE_STATUS_SUCCESS:
-    return "GENIE_STATUS_SUCCESS";
-  case GENIE_STATUS_WARNING_ABORTED:
-    return "GENIE_STATUS_WARNING_ABORTED";
-  case GENIE_STATUS_ERROR_GENERAL:
-    return "GENIE_STATUS_ERROR_GENERAL";
-  case GENIE_STATUS_ERROR_INVALID_ARGUMENT:
-    return "GENIE_STATUS_ERROR_INVALID_ARGUMENT";
-  case GENIE_STATUS_ERROR_MEM_ALLOC:
-    return "GENIE_STATUS_ERROR_MEM_ALLOC";
-  case GENIE_STATUS_ERROR_INVALID_CONFIG:
-    return "GENIE_STATUS_ERROR_INVALID_CONFIG";
-  case GENIE_STATUS_ERROR_INVALID_HANDLE:
-    return "GENIE_STATUS_ERROR_INVALID_HANDLE";
-  case GENIE_STATUS_ERROR_QUERY_FAILED:
-    return "GENIE_STATUS_ERROR_QUERY_FAILED";
-  case GENIE_STATUS_ERROR_JSON_FORMAT:
-    return "GENIE_STATUS_ERROR_JSON_FORMAT";
-  case GENIE_STATUS_ERROR_JSON_SCHEMA:
-    return "GENIE_STATUS_ERROR_JSON_SCHEMA";
-  case GENIE_STATUS_ERROR_JSON_VALUE:
-    return "GENIE_STATUS_ERROR_JSON_VALUE";
-  case GENIE_STATUS_ERROR_GENERATE_FAILED:
-    return "GENIE_STATUS_ERROR_GENERATE_FAILED";
-  case GENIE_STATUS_ERROR_GET_HANDLE_FAILED:
-    return "GENIE_STATUS_ERROR_GET_HANDLE_FAILED";
-  case GENIE_STATUS_ERROR_APPLY_CONFIG_FAILED:
-    return "GENIE_STATUS_ERROR_APPLY_CONFIG_FAILED";
-  case GENIE_STATUS_ERROR_SET_PARAMS_FAILED:
-    return "GENIE_STATUS_ERROR_SET_PARAMS_FAILED";
-  case GENIE_STATUS_ERROR_BOUND_HANDLE:
-    return "GENIE_STATUS_ERROR_BOUND_HANDLE";
-  default:
-    return "UNKNOWN_GENIE_STATUS";
-  }
-}
 
 ContextHolder::ContextHolder(std::string config_json) {
   Genie_Status_t status;
@@ -97,10 +59,6 @@ void ContextHolder::release() {
     GenieProfile_free(profile);
     profile = NULL;
   }
-}
-
-void alloc_json_data(size_t size, const char** data) {
-  *data = (char*)malloc(size);
 }
 
 void ContextHolder::process(std::string prompt) {
@@ -247,5 +205,37 @@ void ContextHolder::on_response(const char *response,
   }
   if (context->callback) {
     context->callback(response, sentenceCode);
+  }
+}
+
+void ContextHolder::apply_lora(const std::string &engine, const std::string &lora_adapter_name) {
+  if (busying) {
+    throw std::runtime_error("Context is busy");
+  }
+  Genie_Status_t status = GenieDialog_applyLora(dialog, engine.c_str(), lora_adapter_name.c_str());
+  if (status != GENIE_STATUS_SUCCESS) {
+    throw std::runtime_error(Genie_Status_ToString(status));
+  }
+}
+
+void ContextHolder::set_lora_strength(const std::string &engine, const LoraStrengthMap &lora_strength_map) {
+  if (busying) {
+    throw std::runtime_error("Context is busy");
+  }
+  for (const auto &[tensor_name, alpha] : lora_strength_map) {
+    Genie_Status_t status = GenieDialog_setLoraStrength(dialog, engine.c_str(), tensor_name.c_str(), alpha);
+    if (status != GENIE_STATUS_SUCCESS) {
+      throw std::runtime_error(Genie_Status_ToString(status));
+    }
+  }
+}
+
+void ContextHolder::reset() {
+  if (busying) {
+    throw std::runtime_error("Context is busy");
+  }
+  Genie_Status_t status = GenieDialog_reset(dialog);
+  if (status != GENIE_STATUS_SUCCESS) {
+    throw std::runtime_error(Genie_Status_ToString(status));
   }
 }

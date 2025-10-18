@@ -14,22 +14,53 @@ const getHtpConfigFilePath = () => {
 };
 
 let Context;
+let Embedding;
 try {
-  ({ Context } = require('./dist/node-qnn-llm.node'));
+  ({ Context, Embedding } = require('./dist/node-qnn-llm.node'));
 } catch {
   Context = new Proxy({}, {
     get: () => {
       throw new Error('Unsupported platform');
     }
   });
+  Embedding = new Proxy({}, {
+    get: () => {
+      throw new Error('Unsupported platform');
+    }
+  });
 }
 
-const exists = async (path) => {
-  try {
-    await fs.stat(path);
-    return true;
-  } catch {
-    return false;
+const preProcessEngine = (engine, dir, n_threads) => {
+  if (engine.backend.type === 'QnnHtp') {
+    engine.backend.extensions = getHtpConfigFilePath();
+    engine.backend.QnnHtp['use-mmap'] = process.platform !== 'win32';
+  }
+  if (engine.model.type === 'binary') {
+    const bins = engine.model.binary['ctx-bins'];
+    engine.model.binary['ctx-bins'] = bins.map(bin => path.join(dir, bin));
+  } else {
+    const bin = engine.library['model-bin'];
+    engine.library['model-bin'] = path.join(dir, bin);
+  }
+  if (n_threads && n_threads > 0) engine['n-threads'] = n_threads;
+};
+
+const preProcessConfig = (config, dir, n_threads) => {
+  const model = config.dialog || config.embedding || config['text-generator'] || config['text-encoder'] || config['image-encoder'];
+  if (!model) throw new Error('Invalid config');
+  if (model.embedding && model.embedding.type === 'lut') {
+    model.embedding['lut-path'] = path.join(dir, model.embedding['lut-path']);
+  }
+  if (model.lut) {
+    model.lut['lut-path'] = path.join(dir, model.lut['lut-path']);
+  }
+  if (model.tokenizer) {
+    model.tokenizer.path = path.join(dir, model.tokenizer.path);
+  }
+  if (Array.isArray(model.engine)) {
+    model.engine.forEach(engine => preProcessEngine(engine, dir, n_threads));
+  } else if (model.engine) {
+    preProcessEngine(model.engine, dir, n_threads);
   }
 };
 
@@ -40,24 +71,26 @@ Context.load = async ({
 }) => {
   await Context.unpack(bundle_path, unpack_dir);
   const config = JSON.parse(await fs.readFile(path.join(unpack_dir, 'config.json'), 'utf8'));
-  if (config.dialog.engine.backend.type === 'QnnHtp') {
-    config.dialog.engine.backend.extensions = getHtpConfigFilePath();
-    config.dialog.engine.backend.QnnHtp['use-mmap'] = process.platform !== 'win32';
-  }
-  config.dialog.tokenizer.path = path.join(unpack_dir, config.dialog.tokenizer.path);
-  if (config.dialog.engine.model.type === 'binary') {
-    const bins = config.dialog.engine.model.binary['ctx-bins'];
-    config.dialog.engine.model.binary['ctx-bins'] = bins.map(bin => path.join(unpack_dir, bin));
-  } else {
-    const bin = config.dialog.engine.library['model-bin'];
-    config.dialog.engine.library['model-bin'] = path.join(unpack_dir, bin);
-  }
-  if (n_threads && n_threads > 0) config.dialog.engine['n-threads'] = n_threads;
+  if (!config.dialog) throw new Error('Config is not a LLM dialog config');
+  preProcessConfig(config, unpack_dir, n_threads);
   return await Context.create(config);
+};
+
+Embedding.load = async ({
+  bundle_path,
+  unpack_dir,
+  n_threads,
+}) => {
+  await Context.unpack(bundle_path, unpack_dir);
+  const config = JSON.parse(await fs.readFile(path.join(unpack_dir, 'config.json'), 'utf8'));
+  if (!config.embedding) throw new Error('Config is not an embedding config');
+  preProcessConfig(config, unpack_dir, n_threads);
+  return await Embedding.create(config);
 };
 
 module.exports = {
   SentenceCode,
   Context,
+  Embedding,
   getHtpConfigFilePath,
 };
