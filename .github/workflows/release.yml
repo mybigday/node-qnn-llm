@@ -50,7 +50,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: bin-${{ matrix.platform }}-${{ matrix.arch }}
-          path: '**/*.node'
+          path: packages/node-qnn-llm-${{ matrix.platform }}-${{ matrix.arch }}
 
   publish-js:
     if: ${{ inputs.publish || startsWith(github.ref, 'refs/tags/v') }}
