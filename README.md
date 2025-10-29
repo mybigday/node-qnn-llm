@@ -2,6 +2,27 @@
 
 Qualcomm AI Direct libGenie binding for Node.js
 
+## Configure
+
+### Windows
+
+- Env `PATH` should able found
+  - Libraries from `<sdk-root>/lib/aarch64-windows-msvc`
+    - `QnnSystem.dll`
+    - `QnnHtp.dll`
+    - `QnnHtpPrepare.dll`
+    - `QnnHtpV*Stub.dll`
+  - And `libQnnHtpV*Skel.so`, `libqnnhtpv73.cat` from `lib/hexagon-v*/unsigned`
+
+### Linux
+
+- Env `ADSP_LIBRARY_PATH` should able found `libQnnHtpV*Skel.so`
+- Env `LD_LIBRARY_PATH` should able found libraries from `<sdk-root>/lib/aarch64-oe-linux-gcc11.2`
+  - `libQnnSystem.so`
+  - `libQnnHtp.so`
+  - `libQnnHtpPrepare.so`
+  - `libQnnHtpV*Stub.so`
+
 ## Usage
 
 ```javascript
