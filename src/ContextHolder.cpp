@@ -114,7 +114,7 @@ std::string ContextHolder::query(std::string prompt,
   busying = true;
   this->callback = std::move(callback);
   status = GenieDialog_query(dialog, query.c_str(), sentenceCode, on_response, this);
-  if (status != GENIE_STATUS_SUCCESS) {
+  if (status != GENIE_STATUS_SUCCESS && status != GENIE_STATUS_WARNING_ABORTED) {
     // retry normal query
     if (prompt.find(full_context) == 0) {
       query = prompt.substr(full_context.length());
