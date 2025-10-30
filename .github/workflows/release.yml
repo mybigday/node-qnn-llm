@@ -17,7 +17,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - platform: windows
+          - platform: win32
             arch: arm64
             os: windows-latest
           - platform: linux
