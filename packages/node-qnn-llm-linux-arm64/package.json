@@ -23,5 +23,8 @@
     "llama",
     "linux",
     "arm64"
-  ]
+  ],
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org"
+  }
 }
