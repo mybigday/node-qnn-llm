@@ -1,6 +1,6 @@
 {
   "name": "node-qnn-llm-linux-x64",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "description": "QNN LLM binding for Node.js - Linux x64 (Development/Testing)",
   "main": "index.node",
   "private": true,
