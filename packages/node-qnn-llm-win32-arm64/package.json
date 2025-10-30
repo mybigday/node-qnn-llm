@@ -1,0 +1,27 @@
+{
+  "name": "node-qnn-llm-win32-arm64",
+  "version": "1.1.0",
+  "description": "QNN LLM binding for Node.js - Windows ARM64",
+  "main": "index.node",
+  "os": [
+    "win32"
+  ],
+  "cpu": [
+    "arm64"
+  ],
+  "files": [
+    "index.node",
+    "Genie.dll"
+  ],
+  "repository": "https://github.com/mybigday/node-qnn-llm",
+  "author": "Hans <hans.chen@bricks.tools>",
+  "license": "MIT",
+  "keywords": [
+    "qualcomm",
+    "npu",
+    "llm",
+    "llama",
+    "windows",
+    "arm64"
+  ]
+}

@@ -1,4 +1,5 @@
 const fs = require('fs/promises');
+const { existsSync } = require('fs');
 const path = require('path');
 
 const SentenceCode = {
@@ -16,24 +17,33 @@ const getHtpConfigFilePath = () => {
 let Context;
 let Embedding;
 try {
-  ({ Context, Embedding } = require('./dist/node-qnn-llm.node'));
+  const { platform, arch } = process;
+  const pkgName = `node-qnn-llm-${platform}-${arch}`;
+  ({ Context, Embedding } = require(arch === 'arm64' ? pkgName : `./packages/${pkgName}`));
 } catch {
   Context = new Proxy({}, {
     get: () => {
-      throw new Error('Unsupported platform');
+      throw new Error('Unsupported platform or failed to load native module');
     }
   });
   Embedding = new Proxy({}, {
     get: () => {
-      throw new Error('Unsupported platform');
+      throw new Error('Unsupported platform or failed to load native module');
     }
   });
 }
 
 const preProcessEngine = (engine, dir, n_threads) => {
   if (engine.backend.type === 'QnnHtp') {
-    engine.backend.extensions = getHtpConfigFilePath();
-    engine.backend.QnnHtp['use-mmap'] = process.platform !== 'win32';
+    const extPath = path.join(dir, engine.backend.extensions);
+    if (!existsSync(extPath)) {
+      engine.backend.extensions = getHtpConfigFilePath();
+    } else {
+      engine.backend.extensions = extPath;
+    }
+    if (process.platform === 'win32') {
+      engine.backend.QnnHtp['use-mmap'] = false;
+    }
   }
   if (engine.model.type === 'binary') {
     const bins = engine.model.binary['ctx-bins'];

@@ -46,6 +46,18 @@ set(QNN_LIBS "Genie")
 string(REGEX MATCH "ARM64|aarch64|arm64" IS_ARM64 ${NODE_ARCH})
 string(REGEX MATCH "x64|AMD64|amd64|x86_64" IS_X64 ${NODE_ARCH})
 
+# Determine platform-specific package directory
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND IS_ARM64)
+  set(PACKAGE_NAME "node-qnn-llm-linux-arm64")
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows" AND IS_ARM64)
+  set(PACKAGE_NAME "node-qnn-llm-win32-arm64")
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND IS_X64)
+  set(PACKAGE_NAME "node-qnn-llm-linux-x64")
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows" AND IS_X64)
+  set(PACKAGE_NAME "node-qnn-llm-win32-x64")
+endif()
+set(PLATFORM_PACKAGE_DIR "packages/${PACKAGE_NAME}")
+
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows" AND IS_ARM64 AND MSVC)
   set(QNN_ARCH "aarch64-windows-msvc")
   set(SHARED_PREFIX "")
@@ -55,7 +67,7 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows" AND IS_X64 AND MSVC)
   set(SHARED_PREFIX "")
   set(SHARED_EXT ".dll")
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND IS_ARM64 AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  set(QNN_ARCH "aarch64-ubuntu-gcc9.4")
+  set(QNN_ARCH "aarch64-oe-linux-gcc11.2")
   set(SHARED_PREFIX "lib")
   set(SHARED_EXT ".so")
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND IS_X64 AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
@@ -63,7 +75,7 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND IS_X64 AND CMAKE_CXX_COMPILER_ID 
   set(SHARED_PREFIX "lib")
   set(SHARED_EXT ".so")
 else()
-  message(FATAL_ERROR "Unsupported system: ${CMAKE_SYSTEM_NAME} ${NODE_ARCH}")
+  message(FATAL_ERROR "Unsupported system: ${CMAKE_SYSTEM_NAME} ${NODE_ARCH} with compiler: ${CMAKE_CXX_COMPILER_ID}")
 endif()
 
 set(QNN_LIB_DIR ${QNN_SDK_ROOT}/lib)
@@ -117,13 +129,18 @@ target_link_libraries(
   libzstd_static
 )
 
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  # node.js: node_modules/${PACKAGE_NAME}
+  # electron: resources/node_modules/${PACKAGE_NAME}
+  set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "-Wl,-rpath,node_modules/${PACKAGE_NAME} -Wl,-rpath,resources/node_modules/${PACKAGE_NAME}")
+endif()
+
 if(MSVC AND CMAKE_JS_NODELIB_DEF AND CMAKE_JS_NODELIB_TARGET)
   # Generate node.lib
   execute_process(COMMAND ${CMAKE_AR} /def:${CMAKE_JS_NODELIB_DEF} /out:${CMAKE_JS_NODELIB_TARGET} ${CMAKE_STATIC_LINKER_FLAGS})
 endif()
 
-set(TARGET_DIR ${CMAKE_SOURCE_DIR}/dist)
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${PROJECT_NAME}> ${TARGET_DIR}/${PROJECT_NAME}.node
-  COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:Genie> ${TARGET_DIR}/${SHARED_PREFIX}Genie${SHARED_EXT}
+  COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${PROJECT_NAME}> ${CMAKE_SOURCE_DIR}/${PLATFORM_PACKAGE_DIR}/index.node
+  COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:Genie> ${CMAKE_SOURCE_DIR}/${PLATFORM_PACKAGE_DIR}/${SHARED_PREFIX}Genie${SHARED_EXT}
 )

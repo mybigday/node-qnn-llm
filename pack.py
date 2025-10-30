@@ -108,6 +108,12 @@ class ModelPacker:
 
         extra_entries = [tokenizer_path]
 
+        # Add htp ext config file if it exists
+        if engine_config['model']['backend']['type'] == 'QnnHtp':
+            extensions = engine_config['model']['backend']['QnnHtp']['extensions']
+            if os.path.exists(os.path.join(input_dir, extensions)):
+                extra_entries.append(extensions)
+
         # Handle different model types
         if engine_config['model']['type'] == 'binary':
             ctx_bins = engine_config['model']['binary']['ctx-bins']
