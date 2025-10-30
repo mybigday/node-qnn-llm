@@ -4,6 +4,8 @@ Qualcomm AI Direct libGenie binding for Node.js
 
 ## Configure
 
+Make libs avilable ([details](https://github.com/quic/ai-hub-apps/tree/main/tutorials/llm_on_genie#step-1-install-qairt-on-the-target-device))
+
 ### Windows
 
 - Env `PATH` should able found
