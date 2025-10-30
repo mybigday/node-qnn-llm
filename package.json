@@ -7,10 +7,8 @@
   "author": "Hans <hans.chen@bricks.tools>",
   "license": "MIT",
   "optionalDependencies": {
-    "node-qnn-llm-linux-arm64": "2.0.0",
-    "node-qnn-llm-win32-arm64": "2.0.0",
-    "node-qnn-llm-linux-x64": "2.0.0",
-    "node-qnn-llm-win32-x64": "2.0.0"
+    "@fugood/node-qnn-llm-linux-arm64": "2.0.0",
+    "@fugood/node-qnn-llm-win32-arm64": "2.0.0"
   },
   "devDependencies": {
     "cmake-js": "^7.3.0",

@@ -1,5 +1,5 @@
 {
-  "name": "node-qnn-llm-linux-arm64",
+  "name": "@fugood/node-qnn-llm-linux-arm64",
   "version": "2.0.0",
   "description": "QNN LLM binding for Node.js - Linux ARM64",
   "main": "index.node",
