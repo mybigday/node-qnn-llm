@@ -1,4 +1,5 @@
 const fs = require('fs/promises');
+const { existsSync } = require('fs');
 const path = require('path');
 
 const SentenceCode = {
@@ -34,7 +35,12 @@ try {
 
 const preProcessEngine = (engine, dir, n_threads) => {
   if (engine.backend.type === 'QnnHtp') {
-    engine.backend.extensions = getHtpConfigFilePath();
+    const extPath = path.join(dir, engine.backend.extensions);
+    if (!existsSync(extPath)) {
+      engine.backend.extensions = getHtpConfigFilePath();
+    } else {
+      engine.backend.extensions = extPath;
+    }
     if (process.platform === 'win32') {
       engine.backend.QnnHtp['use-mmap'] = false;
     }
