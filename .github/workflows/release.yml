@@ -54,6 +54,8 @@ jobs:
 
   publish-js:
     if: ${{ inputs.publish || startsWith(github.ref, 'refs/tags/v') }}
+    needs:
+      - publish-native
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
