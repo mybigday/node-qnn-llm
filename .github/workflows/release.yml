@@ -18,6 +18,7 @@ jobs:
       id-token: write
       contents: read
     strategy:
+      fail-fast: false
       matrix:
         include:
           - platform: win32
@@ -47,7 +48,15 @@ jobs:
         if: ${{ inputs.publish || startsWith(github.ref, 'refs/tags/v') }}
         shell: bash
         working-directory: packages/node-qnn-llm-${{ matrix.platform }}-${{ matrix.arch }}
-        run: NODE_AUTH_TOKEN="" npm publish --provenance --access public
+        run: |
+          PKG_NAME=$(node -p "require('./package.json').name")
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          REMOTE_VERSION=$(npm view "$PKG_NAME" version 2>/dev/null || echo "")
+          if [ "$REMOTE_VERSION" = "$PKG_VERSION" ]; then
+            echo "$PKG_NAME@$PKG_VERSION already published, skipping"
+          else
+            NODE_AUTH_TOKEN="" npm publish --provenance --access public
+          fi
       - name: Upload artifacts
         if: ${{ !inputs.publish }}
         uses: actions/upload-artifact@v4
