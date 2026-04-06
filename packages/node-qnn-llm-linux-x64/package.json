@@ -14,7 +14,10 @@
     "index.node",
     "libGenie.so"
   ],
-  "repository": "https://github.com/mybigday/node-qnn-llm",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mybigday/node-qnn-llm.git"
+  },
   "author": "Hans <hans.chen@bricks.tools>",
   "license": "MIT",
   "keywords": [
