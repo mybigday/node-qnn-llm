@@ -23,6 +23,16 @@ protected:
   void SetStopWords(const Napi::CallbackInfo &info);
   // context.apply_sampler_config(config_json: object): void
   void ApplySamplerConfig(const Napi::CallbackInfo &info);
+  // context.get_context_occupancy(): number
+  Napi::Value GetContextOccupancy(const Napi::CallbackInfo &info);
+  // context.get_applied_lora_adapter(): string
+  Napi::Value GetAppliedLoraAdapter(const Napi::CallbackInfo &info);
+  // context.apply_lora(engine: string, lora_adapter_name: string): void
+  void ApplyLora(const Napi::CallbackInfo &info);
+  // context.set_lora_strength(engine: string, lora_strength: Record<string, number>): void
+  void SetLoraStrength(const Napi::CallbackInfo &info);
+  // context.release_lora_memory(engine: string, lora_adapter_name: string): void
+  void ReleaseLoraMemory(const Napi::CallbackInfo &info);
   // context.save_session(filename: string): void
   Napi::Value SaveSession(const Napi::CallbackInfo &info);
   // context.restore_session(filename: string): void

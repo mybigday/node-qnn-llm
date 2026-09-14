@@ -1,6 +1,25 @@
 #include "ContextHolder.h"
 #include "utils.h"
+#include <chrono>
 #include <stdexcept>
+#include <thread>
+
+namespace {
+// Clears `busying` on every exit path (normal return or exception unwinding)
+// so a concurrent release() waiting on this flag is never left spinning
+// forever, and so `busying` stays true for the entire duration a query()/
+// process() call keeps touching the dialog/profile handles.
+class BusyGuard {
+public:
+  explicit BusyGuard(std::atomic<bool> &flag) : flag_(flag) { flag_ = true; }
+  ~BusyGuard() { flag_ = false; }
+  BusyGuard(const BusyGuard &) = delete;
+  BusyGuard &operator=(const BusyGuard &) = delete;
+
+private:
+  std::atomic<bool> &flag_;
+};
+}  // namespace
 
 ContextHolder::ContextHolder(std::string config_json) {
   Genie_Status_t status;
@@ -42,7 +61,14 @@ void ContextHolder::release() {
     if (status != GENIE_STATUS_SUCCESS) {
       throw std::runtime_error(Genie_Status_ToString(status));
     }
-    busying = false;
+    // Wait for the in-flight query()/process() call to actually return from
+    // GenieDialog_query before freeing the dialog out from under it. That
+    // call clears `busying` itself once GenieDialog_query unblocks with the
+    // abort status; setting it here instead would let this thread free the
+    // dialog while the other thread is still inside GenieDialog_query.
+    while (busying) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
   }
   if (dialog) {
     Genie_Status_t status = GenieDialog_free(dialog);
@@ -71,7 +97,7 @@ void ContextHolder::process(std::string prompt) {
   if (!full_context.empty()) {
     sentenceCode = GENIE_DIALOG_SENTENCE_REWIND;
   }
-  busying = true;
+  BusyGuard guard(busying);
   this->callback = std::move(callback);
   status = GenieDialog_query(dialog, query.c_str(), sentenceCode, process_callback, this);
   if (status != GENIE_STATUS_SUCCESS && status != GENIE_STATUS_WARNING_ABORTED) {
@@ -86,7 +112,6 @@ void ContextHolder::process(std::string prompt) {
     }
     status = GenieDialog_query(dialog, query.c_str(), sentenceCode, process_callback, this);
   }
-  busying = false;
   if (status != GENIE_STATUS_SUCCESS && status != GENIE_STATUS_WARNING_ABORTED) {
     throw std::runtime_error(Genie_Status_ToString(status));
   }
@@ -111,7 +136,7 @@ std::string ContextHolder::query(std::string prompt,
   if (!full_context.empty()) {
     sentenceCode = GENIE_DIALOG_SENTENCE_REWIND;
   }
-  busying = true;
+  BusyGuard guard(busying);
   this->callback = std::move(callback);
   status = GenieDialog_query(dialog, query.c_str(), sentenceCode, on_response, this);
   if (status != GENIE_STATUS_SUCCESS && status != GENIE_STATUS_WARNING_ABORTED) {
@@ -126,7 +151,6 @@ std::string ContextHolder::query(std::string prompt,
     }
     status = GenieDialog_query(dialog, query.c_str(), sentenceCode, on_response, this);
   }
-  busying = false;
   if (status != GENIE_STATUS_SUCCESS && status != GENIE_STATUS_WARNING_ABORTED) {
     throw std::runtime_error(Genie_Status_ToString(status));
   }
@@ -228,6 +252,47 @@ void ContextHolder::set_lora_strength(const std::string &engine, const LoraStren
       throw std::runtime_error(Genie_Status_ToString(status));
     }
   }
+}
+
+void ContextHolder::release_lora_memory(const std::string &engine, const std::string &lora_adapter_name) {
+  if (busying) {
+    throw std::runtime_error("Context is busy");
+  }
+  Genie_Status_t status = GenieDialog_releaseLoraMemory(dialog, engine.c_str(), lora_adapter_name.c_str());
+  if (status != GENIE_STATUS_SUCCESS) {
+    throw std::runtime_error(Genie_Status_ToString(status));
+  }
+}
+
+uint32_t ContextHolder::get_context_occupancy() {
+  if (busying) {
+    throw std::runtime_error("Context is busy");
+  }
+  Genie_DataType_t dataType;
+  Genie_Value_t value;
+  Genie_Status_t status = GenieDialog_getValue(
+      dialog, GENIE_DIALOG_PARAM_CONTEXT_OCCUPANCY, nullptr, &dataType, &value);
+  if (status != GENIE_STATUS_SUCCESS) {
+    throw std::runtime_error(Genie_Status_ToString(status));
+  }
+  return value.uint32Value;
+}
+
+std::string ContextHolder::get_applied_lora_adapter() {
+  if (busying) {
+    throw std::runtime_error("Context is busy");
+  }
+  Genie_DataType_t dataType;
+  Genie_Value_t value;
+  value.stringValue = nullptr;
+  Genie_Status_t status = GenieDialog_getValue(
+      dialog, GENIE_DIALOG_PARAM_APPLIED_LORA_ADAPTER, alloc_json_data, &dataType, &value);
+  if (status != GENIE_STATUS_SUCCESS) {
+    throw std::runtime_error(Genie_Status_ToString(status));
+  }
+  std::string result = value.stringValue ? value.stringValue : "";
+  free((void *)value.stringValue);
+  return result;
 }
 
 void ContextHolder::reset() {

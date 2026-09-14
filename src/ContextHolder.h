@@ -25,6 +25,9 @@ public:
   void apply_sampler_config(std::string config_json);
   void apply_lora(const std::string &engine, const std::string &lora_adapter_name);
   void set_lora_strength(const std::string &engine, const LoraStrengthMap &lora_strength_map);
+  void release_lora_memory(const std::string &engine, const std::string &lora_adapter_name);
+  uint32_t get_context_occupancy();
+  std::string get_applied_lora_adapter();
   void reset();
 
 protected:

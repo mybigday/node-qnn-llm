@@ -61,6 +61,7 @@ Napi::Value Embedding::Release(const Napi::CallbackInfo &info) {
     return env.Undefined();
   }
   auto worker = new ReleaseWorker(env, _embedding);
+  _embedding = NULL;
   worker->Queue();
   return worker->Promise();
 }

@@ -48,6 +48,18 @@ await context.apply_sampler_config({
   /* Genie sampler config */
 });
 
+// how full the context window is (unitless, driver-reported)
+const occupancy = context.get_context_occupancy();
+
+context.apply_lora('primary', 'my-lora-adapter');
+
+context.set_lora_strength('primary', { 'lora_alpha_tensor_name': 0.8 });
+
+// name of the LoRA adapter currently applied, or '' if none
+const loraAdapter = context.get_applied_lora_adapter();
+
+context.release_lora_memory('primary', 'my-lora-adapter');
+
 await context.release();
 ```
 
