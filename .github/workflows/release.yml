@@ -39,7 +39,7 @@ jobs:
       - name: Setup QNN SDK
         uses: mybigday/setup-qnn-sdk@main
         with:
-          qnn-sdk-version: 2.50.0.260828
+          qnn-sdk-version: 2.51.0.260929
       - name: Install dependencies
         run: npm run bootstrap
       - name: Build native module

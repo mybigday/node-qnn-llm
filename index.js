@@ -19,7 +19,10 @@ let Embedding;
 try {
   const { platform, arch } = process;
   const pkgName = `node-qnn-llm-${platform}-${arch}`;
-  ({ Context, Embedding } = require(arch === 'arm64' ? pkgName : `./packages/${pkgName}`));
+  ({ Context, Embedding } = require(arch === 'arm64' ? `@fugood/${pkgName}` : `./packages/${pkgName}`));
+  const nativeCreate = Context.create;
+  Context.create = async (config, { dialog_type } = {}) =>
+    nativeCreate.call(Context, selectDialogType(config, dialog_type));
 } catch {
   Context = new Proxy({}, {
     get: () => {
@@ -32,6 +35,44 @@ try {
     }
   });
 }
+
+const DIALOG_TYPES = ['basic', 'ssd-q1', 'lade', 'spd', 'multistream', 'eaglet', 'kv-share'];
+// Dialog types that run two engines, and the roles Genie requires for them
+const MULTI_ENGINE_ROLES = {
+  spd: ['draft', 'target'],
+  eaglet: ['draft', 'target'],
+  'kv-share': ['primary', 'secondary'],
+};
+
+// Genie rejects a config carrying settings for any dialog type other than
+// `dialog.type`, so a config may hold several and we keep only the chosen one.
+const selectDialogType = (config, dialogType) => {
+  const dialog = config?.dialog;
+  if (!dialog) throw new Error('Config is not a LLM dialog config');
+  const type = dialogType ?? dialog.type ?? 'basic';
+  if (!DIALOG_TYPES.includes(type)) {
+    throw new Error(`Unknown dialog type '${type}' (supported: ${DIALOG_TYPES.join(', ')})`);
+  }
+  if (type !== 'basic' && type !== dialog.type && !dialog[type]) {
+    throw new Error(`Config does not provide settings for dialog type '${type}'`);
+  }
+  let { engine } = dialog;
+  const roles = MULTI_ENGINE_ROLES[type];
+  if (roles) {
+    if (!Array.isArray(engine) || !roles.every(role => engine.some(e => e.role === role))) {
+      throw new Error(`Dialog type '${type}' needs engines with roles: ${roles.join(', ')}`);
+    }
+  } else if (Array.isArray(engine)) {
+    const main = engine.find(e => e.role === 'target' || e.role === 'primary');
+    if (!main) throw new Error(`Config has no target or primary engine for dialog type '${type}'`);
+    // a single-engine dialog must not carry `role`
+    const { role, ...rest } = main;
+    engine = rest;
+  }
+  const selected = { ...dialog, type, engine };
+  DIALOG_TYPES.filter(t => t !== type).forEach(t => delete selected[t]);
+  return { ...config, dialog: selected };
+};
 
 const preProcessEngine = (engine, dir, n_threads) => {
   if (engine.backend.type === 'QnnHtp') {
@@ -78,12 +119,13 @@ Context.load = async ({
   bundle_path,
   unpack_dir,
   n_threads,
+  dialog_type,
 }) => {
   await Context.unpack(bundle_path, unpack_dir);
   const config = JSON.parse(await fs.readFile(path.join(unpack_dir, 'config.json'), 'utf8'));
   if (!config.dialog) throw new Error('Config is not a LLM dialog config');
   preProcessConfig(config, unpack_dir, n_threads);
-  return await Context.create(config);
+  return await Context.create(config, { dialog_type });
 };
 
 Embedding.load = async ({

@@ -3,15 +3,16 @@
 
 class QueryWorker : public Napi::AsyncWorker, public Napi::Promise::Deferred {
 public:
-  QueryWorker(Napi::Env env, std::string prompt, ContextHolder *context,
+  QueryWorker(Napi::Env env, QueryParams params, ContextHolder *context,
               Napi::Function callback);
   void Execute();
   void OnOK();
   void OnError(const Napi::Error &e);
 
 private:
-  std::string prompt_;
+  QueryParams params_;
   ContextHolder *_context;
   Napi::ThreadSafeFunction _tsfn;
-  std::string profile_json_;
+  std::string text_;
+  QueryResult result_;
 };

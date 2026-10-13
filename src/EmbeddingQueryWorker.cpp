@@ -31,6 +31,8 @@ void EmbeddingQueryWorker::Execute() {
 }
 
 void EmbeddingQueryWorker::OnOK() {
+  // Pending callbacks still run; an unreleased TSFN keeps the event loop alive.
+  _tsfn.Release();
   if (!profile_json_.empty()) {
     Napi::Env env = Napi::AsyncWorker::Env();
     Napi::HandleScope scope(env);
@@ -43,4 +45,7 @@ void EmbeddingQueryWorker::OnOK() {
   }
 }
 
-void EmbeddingQueryWorker::OnError(const Napi::Error &e) { Reject(e.Value()); }
+void EmbeddingQueryWorker::OnError(const Napi::Error &e) {
+  _tsfn.Release();
+  Reject(e.Value());
+}

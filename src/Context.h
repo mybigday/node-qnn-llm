@@ -19,10 +19,6 @@ protected:
   static Napi::Value Unpack(const Napi::CallbackInfo &info);
   // Context.create(config_json: object): Promise<Context>
   static Napi::Value Create(const Napi::CallbackInfo &info);
-  // context.set_stop_words(stop_words: string[]): void
-  void SetStopWords(const Napi::CallbackInfo &info);
-  // context.apply_sampler_config(config_json: object): void
-  void ApplySamplerConfig(const Napi::CallbackInfo &info);
   // context.get_context_occupancy(): number
   Napi::Value GetContextOccupancy(const Napi::CallbackInfo &info);
   // context.get_applied_lora_adapter(): string
@@ -39,8 +35,9 @@ protected:
   Napi::Value RestoreSession(const Napi::CallbackInfo &info);
   // context.abort(): void
   void Abort(const Napi::CallbackInfo &info);
-  // context.query(prompt: string, callback: (result: string) => void):
-  // Promise<string>
+  // context.query(params: { prompt, stop?, n_predict?, temperature?, top_k?, top_p?, seed?,
+  //   grammar?, json_schema?, regex? }, callback?: (text, sentenceCode) => void):
+  // Promise<{ text, tokens_evaluated, tokens_predicted, interrupted, timings, profile }>
   Napi::Value Query(const Napi::CallbackInfo &info);
   // context.release(): Promise<void>
   Napi::Value Release(const Napi::CallbackInfo &info);
