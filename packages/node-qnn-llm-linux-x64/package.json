@@ -1,6 +1,6 @@
 {
   "name": "@fugood/node-qnn-llm-linux-x64",
-  "version": "2.2.0",
+  "version": "3.0.0",
   "description": "QNN LLM binding for Node.js - Linux x64 (Development/Testing)",
   "main": "index.node",
   "private": true,
